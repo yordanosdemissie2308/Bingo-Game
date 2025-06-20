@@ -1,9 +1,8 @@
 import React from "react";
-import Sidebar from "../componets/Sidebar";
 import LoginPage from "../layout/aut/Login";
 
-export const Home = () => {
+export const Login = () => {
   return <LoginPage />;
 };
 
-export default Home;
+export default Login;
