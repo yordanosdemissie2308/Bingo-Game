@@ -1,8 +1,6 @@
 import React from "react";
 import LoginPage from "../layout/aut/Login";
 
-export const Login = () => {
+export default function Login() {
   return <LoginPage />;
-};
-
-export default Login;
+}
