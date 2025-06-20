@@ -99,7 +99,7 @@ export default function SelectCards() {
       bet: String(betAmount),
       bonus: bonusType,
     }).toString();
-    router.push(`/play-bingo?${q}`);
+    router.push(`/web/play-bingo?${q}`);
   };
 
   const isNumberInCartela = (
