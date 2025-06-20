@@ -3,7 +3,7 @@
 import { UserIcon, BarChart, RotateCcw, Settings, Grid } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import Dashboard from "./Home";
+import Dashboard from "./Dashboard";
 
 const Sidebar = () => {
   const pathname = usePathname();
