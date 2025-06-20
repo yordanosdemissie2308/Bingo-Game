@@ -34,3 +34,58 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# Node modules
+node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Output of builds
+dist/
+.next/
+out/
+build/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Env files
+.env
+.env.*.local
+
+# Turbo cache
+turbo/
+.turbo/
+
+# VSCode
+.vscode/
+
+# pnpm store
+.pnpm-store/
+
+# Coverage
+coverage/
+
+# IDE folders
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Optional: Mac OS generated files
+.AppleDouble
+.LSOverride
+
+# Optional: Linux trash folder
+.Trash-*
+
+# Optional: dotenv environment backup files
+*.local
+
+# Optional: Next.js specific
+.next/
