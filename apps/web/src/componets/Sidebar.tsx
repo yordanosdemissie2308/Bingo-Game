@@ -12,7 +12,7 @@ const Sidebar = () => {
     { name: "Dashboard", icon: <UserIcon />, href: "/web/home" },
     { name: "Sales", icon: <BarChart />, href: "/web/sales" },
     { name: "Play Game", icon: <RotateCcw />, href: "/web/bingo-image" },
-    { name: "Settings", icon: <Settings />, href: "/web/setting" },
+    { name: "Settings", icon: <Settings />, href: "/web/settings" },
     { name: "Card", icon: <Grid />, href: "/web/bingo-card" },
   ];
 

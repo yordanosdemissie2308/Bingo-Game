@@ -22,7 +22,7 @@ export default function Calendar() {
   const isToday = (day: dayjs.Dayjs) => day.isSame(dayjs(), "day");
 
   return (
-    <div className="p-4 bg-white rounded-lg shadow-md max-w-md mx-auto">
+    <div className="p-4  rounded-lg shadow-md max-w-md mx-auto">
       <div className="flex justify-between items-center mb-4">
         <button
           onClick={() => setCurrentDate(currentDate.subtract(1, "month"))}

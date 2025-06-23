@@ -2,8 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { getDocs, collection } from "firebase/firestore";
-import { db } from "./Firbase";
+import {
+  getDocs,
+  collection,
+  query,
+  where,
+  doc,
+  updateDoc,
+  addDoc,
+} from "firebase/firestore";
+import { db, auth } from "./Firbase";
+import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 
 const gameTypes = ["Person", "Heart", "H", "T", "P"];
 
@@ -15,10 +24,11 @@ interface Cartela {
 
 export default function SelectCards() {
   const router = useRouter();
-
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [userData, setUserData] = useState<{ points?: number }>({});
   const [language, setLanguage] = useState<"English" | "Amharic">("English");
   const [speed, setSpeed] = useState("4000");
-  const [gameTypeIndex, setGameTypeIndex] = useState(0);
+  const [gameType, setGameType] = useState(gameTypes[0]);
   const [bonusType, setBonusType] = useState("None");
   const [betAmount, setBetAmount] = useState(10);
   const [cartelas, setCartelas] = useState<Cartela[]>([]);
@@ -31,15 +41,44 @@ export default function SelectCards() {
 
   const maxSelectable = Math.floor(betAmount / 10);
   const isAmharic = language === "Amharic";
+  const points = userData.points ?? 0;
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser?.email) {
+        setUser(firebaseUser);
+        try {
+          const usersRef = collection(db, "users");
+          const userQuery = query(
+            usersRef,
+            where("email", "==", firebaseUser.email)
+          );
+          const userSnapshot = await getDocs(userQuery);
+
+          if (!userSnapshot.empty && userSnapshot.docs[0]) {
+            const data = userSnapshot.docs[0].data();
+            setUserData({ points: data?.points ?? 0 });
+          } else {
+            setUserData({ points: 0 });
+          }
+        } catch {
+          setUserData({ points: 0 });
+        }
+      } else {
+        setUser(null);
+        setUserData({ points: 0 });
+      }
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     async function fetchCartelas() {
-      setLoading(true);
-      setError(null);
       try {
         const snap = await getDocs(collection(db, "cartelas"));
         const list = snap.docs.map(
-          (d) => ({ id: d.id, ...d.data() }) as Cartela
+          (doc) => ({ id: doc.id, ...doc.data() }) as Cartela
         );
         setCartelas(list);
 
@@ -51,15 +90,11 @@ export default function SelectCards() {
             .slice(0, maxSelectable);
           setSelectedCartelaIndices(valid);
         }
-      } catch (e) {
-        console.error(e);
-        setError(
-          isAmharic ? "የካርቴላዎችን መጫኛ አልተሳካም።" : "Failed to load cartelas."
-        );
-      } finally {
-        setLoading(false);
+      } catch {
+        setError(isAmharic ? "የካርቴላ መጫኛ አልተሳካም።" : "Failed to load cartelas.");
       }
     }
+
     fetchCartelas();
   }, [maxSelectable, isAmharic]);
 
@@ -75,31 +110,13 @@ export default function SelectCards() {
   }, [maxSelectable]);
 
   const toggleCartelaSelection = (i: number) => {
-    setSelectedCartelaIndices((prev) => {
-      if (prev.includes(i)) return prev.filter((x) => x !== i);
-      if (prev.length < maxSelectable) return [...prev, i];
-      return prev;
-    });
-  };
-
-  const handlePlayClick = () => {
-    if (!selectedCartelaIndices.length) {
-      alert(
-        isAmharic
-          ? "እባክዎን አንድ ካርቴላ ይምረጡ።"
-          : "Please select at least one cartela."
-      );
-      return;
-    }
-    const ids = selectedCartelaIndices
-      .map((i) => cartelas[i]?.id)
-      .filter(Boolean);
-    const q = new URLSearchParams({
-      selected: ids.join(","),
-      bet: String(betAmount),
-      bonus: bonusType,
-    }).toString();
-    router.push(`/web/play-bingo?${q}`);
+    setSelectedCartelaIndices((prev) =>
+      prev.includes(i)
+        ? prev.filter((x) => x !== i)
+        : prev.length < maxSelectable
+          ? [...prev, i]
+          : prev
+    );
   };
 
   const isNumberInCartela = (
@@ -110,51 +127,111 @@ export default function SelectCards() {
     return numbers.includes(target);
   };
 
+  const handlePlayClick = async () => {
+    if (!selectedCartelaIndices.length) {
+      alert(
+        isAmharic
+          ? "እባክዎን አንድ ካርቴላ ይምረጡ።"
+          : "Please select at least one cartela."
+      );
+      return;
+    }
+
+    if (points < 50) {
+      alert(isAmharic ? "በቂ ነጥብ የለዎትም።" : "Not enough points (need 50).");
+      return;
+    }
+
+    if (!user?.email) {
+      alert("User not logged in.");
+      return;
+    }
+
+    try {
+      const usersRef = collection(db, "users");
+      const userQuery = query(usersRef, where("email", "==", user.email));
+      const userSnapshot = await getDocs(userQuery);
+
+      if (!userSnapshot.empty) {
+        const userDoc = userSnapshot.docs[0];
+        if (userDoc?.id) {
+          const ref = doc(db, "users", userDoc.id);
+          await updateDoc(ref, { points: points - 50 });
+          setUserData({ points: points - 50 });
+        } else {
+          alert("User document is invalid.");
+          return;
+        }
+      } else {
+        alert("User document not found.");
+        return;
+      }
+
+      const selectedCartelaIds = selectedCartelaIndices
+        .map((i) => cartelas[i]?.id)
+        .filter((id): id is string => !!id);
+
+      await addDoc(collection(db, "gameSessions"), {
+        userEmail: user.email,
+        selectedCartelas: selectedCartelaIds,
+        betAmount,
+        gameType,
+        bonusType,
+        createdAt: new Date(),
+      });
+
+      const params = new URLSearchParams();
+      params.set("selected", selectedCartelaIds.join(","));
+      params.set("bet", String(betAmount));
+      params.set("bonus", bonusType);
+      params.set("gameType", gameType ?? "Person");
+
+      router.push(`/web/play-bingo?${params.toString()}`);
+    } catch (err) {
+      console.error("Error storing game session:", err);
+      alert("Failed to update points or store session");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white">
+        {isAmharic ? "መጫን እየተካሄደ ነው..." : "Loading..."}
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-red-900 text-gray-100 p-6 flex flex-col items-center">
-      <h1 className="text-5xl font-extrabold mb-10 drop-shadow-lg">
+    <div className="min-h-screen p-6 flex flex-col items-center ">
+      <h1 className="text-5xl font-extrabold mb-10">
         {isAmharic ? "ካርቴላ ምረጥ" : "Select Your Cartelas"}
       </h1>
 
-      {/* Controls */}
+      <p className="text-xl font-bold mb-6">
+        {isAmharic ? "ነጥብዎ፡" : "Your Points:"} {points}
+      </p>
+
       <div className="flex flex-wrap justify-center gap-6 mb-12">
         {[
           {
-            label: isAmharic ? "ቋንቋ" : "Language",
-            value: language,
-            onChange: (e: React.ChangeEvent<HTMLSelectElement>) =>
-              setLanguage(e.target.value as any),
-            options: ["English", "Amharic"],
-          },
-          {
-            label: isAmharic ? "ፍጥነት" : "Speed",
-            value: speed,
-            onChange: (e: React.ChangeEvent<HTMLSelectElement>) =>
-              setSpeed(e.target.value),
-            options: ["4000", "3000", "2000", "1000"],
-          },
-          {
             label: isAmharic ? "የጨዋታ አይነት" : "Game Type",
-            value: String(gameTypeIndex),
-            onChange: (e: React.ChangeEvent<HTMLSelectElement>) =>
-              setGameTypeIndex(Number(e.target.value)),
+            value: gameType,
             options: gameTypes,
+            onChange: (e: any) => setGameType(e.target.value),
           },
           {
             label: isAmharic ? "ቦኑስ" : "Bonus Type",
             value: bonusType,
-            onChange: (e: React.ChangeEvent<HTMLSelectElement>) =>
-              setBonusType(e.target.value),
             options: ["None", "Bonus1", "Bonus2"],
+            onChange: (e: any) => setBonusType(e.target.value),
           },
           {
             label: isAmharic ? "የትርፍ መጠን" : "Bet Amount",
             value: String(betAmount),
-            onChange: (e: React.ChangeEvent<HTMLSelectElement>) =>
-              setBetAmount(Number(e.target.value)),
             options: ["10", "20", "30", "40", "50"],
+            onChange: (e: any) => setBetAmount(Number(e.target.value)),
           },
-        ].map(({ label, value, onChange, options }) => (
+        ].map(({ label, value, options, onChange }) => (
           <label
             key={label}
             className="flex flex-col w-40 bg-white/10 p-3 rounded-lg"
@@ -163,10 +240,10 @@ export default function SelectCards() {
             <select
               value={value}
               onChange={onChange}
-              className="bg-transparent"
+              className="bg-transparent text-black"
             >
-              {options.map((opt, i) => (
-                <option key={i} value={opt}>
+              {options.map((opt: any, idx: number) => (
+                <option key={idx} value={opt}>
                   {opt}
                 </option>
               ))}
@@ -175,7 +252,6 @@ export default function SelectCards() {
         ))}
       </div>
 
-      {/* Search Input and Selected Count */}
       <div className="flex items-center gap-6 mb-6">
         <input
           type="number"
@@ -191,18 +267,14 @@ export default function SelectCards() {
         </span>
       </div>
 
-      {/* Clear Button */}
       <button
         onClick={() => setSelectedCartelaIndices([])}
-        className="mb-8 px-6 py-3 bg-blue-600 rounded-full"
+        className="mb-8 px-6 py-3 bg-blue-600 rounded-full hover:bg-blue-700 transition"
       >
         {isAmharic ? "ምርጫዎችን አጥፋ" : "Clear Selections"}
       </button>
 
-      {/* Cartelas */}
-      {loading ? (
-        <p className="animate-pulse">{isAmharic ? "መጫን..." : "Loading..."}</p>
-      ) : error ? (
+      {error ? (
         <p className="text-red-400">{error}</p>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
@@ -223,11 +295,11 @@ export default function SelectCards() {
                     ? "bg-blue-700 text-white"
                     : match
                       ? "bg-green-600 text-white"
-                      : "bg-white/10"
+                      : "bg-white/10 text-white"
                 }`}
               >
                 <div className="font-semibold mb-2">
-                  {isAmharic ? `ካርቴላ ${idx + 1}` : `Card ${idx + 1}`}
+                  {isAmharic ? `ካርቴላ ${idx + 1}` : ` ${idx + 1}`}
                 </div>
                 <div className="text-sm">
                   {Array.isArray(c.numbers) ? c.numbers.join(", ") : c.numbers}
@@ -238,11 +310,10 @@ export default function SelectCards() {
         </div>
       )}
 
-      {/* Play Button */}
       <button
         onClick={handlePlayClick}
         disabled={!selectedCartelaIndices.length}
-        className="mt-12 px-10 py-4 bg-blue-600 rounded-full text-2xl"
+        className="mt-12 px-10 py-4 bg-blue-600 rounded-full text-2xl hover:bg-blue-700 transition"
       >
         {isAmharic ? "ጀምር" : "Play Bingo Page"}
       </button>
