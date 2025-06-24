@@ -1,6 +1,6 @@
 import React from "react";
-import { MangeUsersAction } from "../../../../componets/MangeUsersAction";
+import { ManageUsersAction } from "../../../../componets/MangeUsersAction";
 
 export default function bingocard() {
-  return <MangeUsersAction />;
+  return <ManageUsersAction />;
 }
