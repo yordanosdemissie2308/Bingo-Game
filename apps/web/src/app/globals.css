@@ -1,27 +1,17 @@
 @import "tailwindcss";
 
-:root {
-  --bg-color: #ffffff;
-  --text-color: #000000;
+body.theme-white {
+  @apply bg-white text-black;
 }
 
-.theme-black {
-  --bg-color: #000000;
-  --text-color: #ffffff;
+body.theme-yellow {
+  @apply bg-gradient-to-br from-yellow-300 to-orange-500 text-orange-900;
 }
 
-.theme-blue {
-  --bg-color: #1e40af;
-  --text-color: #ffffff;
-}
-
-.theme-white {
-  --bg-color: #ffffff;
-  --text-color: #000000;
+body.theme-blue {
+  @apply bg-blue-900 text-white;
 }
 
 body {
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background 0.3s ease, color 0.3s ease;
 }

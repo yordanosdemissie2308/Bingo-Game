@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "white" | "black" | "blue";
+export type Theme = "white" | "yellow" | "blue";
 
 const ThemeContext = createContext<{
   theme: Theme;
@@ -26,7 +26,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 
   const toggleTheme = () => {
     setTheme(
-      theme === "white" ? "black" : theme === "black" ? "blue" : "white"
+      theme === "white" ? "yellow" : theme === "yellow" ? "blue" : "white"
     );
   };
 
@@ -36,7 +36,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    document.body.classList.remove("theme-white", "theme-black", "theme-blue");
+    document.body.classList.remove("theme-white", "theme-yellow", "theme-blue");
     document.body.classList.add(`theme-${theme}`);
   }, [theme]);
 
