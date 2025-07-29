@@ -23,7 +23,7 @@ const LoginPage = () => {
       console.log("User logged in:", userCredential.user);
 
       // Redirect to main page after login
-      router.push("/web/admin-main");
+      router.push("/web/admin-dashbord");
     } catch (err: any) {
       console.error("Firebase Login Error:", err.code, err.message);
       switch (err.code) {
@@ -43,7 +43,7 @@ const LoginPage = () => {
   };
 
   const goToSignUp = () => {
-    router.push("/web/sign-up"); // Fixed path
+    router.push("/web/sign-up");
   };
 
   return (
