@@ -36,7 +36,7 @@ const bonusOptions = [
 
 interface Cartela {
   id?: string;
-  number?: number; // card number
+  number?: number;
   numbers?: number[] | string;
   [key: string]: any;
 }
@@ -54,7 +54,6 @@ export default function SelectCards() {
   const [betAmount, setBetAmount] = useState(10);
 
   const [cartelas, setCartelas] = useState<Cartela[]>([]);
-  // Now store selected cards by their card number (not indices)
   const [selectedCartelaNumbers, setSelectedCartelaNumbers] = useState<
     number[]
   >([]);
@@ -62,18 +61,15 @@ export default function SelectCards() {
   const [searchNumber, setSearchNumber] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [typeCount, setTypeCount] = useState(0);
-  const [selectedPercent, setSelectedPercent] = useState(100); // Default to 100%
-  const [showPercent, setShowPercent] = useState(true);
+  const [selectedPercent, setSelectedPercent] = useState(100);
+  const [show, setShow] = useState(true);
+
+  const [showEnterCardModal, setShowEnterCardModal] = useState(false);
+  const [enteredCardNumber, setEnteredCardNumber] = useState("");
+  const [enterCardError, setEnterCardError] = useState("");
 
   const isAmharic = language === "Amharic";
   const points = userData.points ?? 0;
-  const [showEnterCardModal, setShowEnterCardModal] = useState(false);
-  const [show, setShow] = useState(true);
-
-  const [enteredCardNumber, setEnteredCardNumber] = useState("");
-  const [enterCardError, setEnterCardError] = useState("");
-  const [showDropdown, setShowDropdown] = useState(false);
 
   const percentageOptions = [25, 50, 75, 100];
 
@@ -112,7 +108,6 @@ export default function SelectCards() {
         const snap = await getDocs(collection(db, "cartelas"));
         const list = snap.docs.map((doc, idx) => {
           const data = doc.data() as Cartela;
-          // Ensure every card has a unique 'number' property
           return { id: doc.id, number: data.number ?? idx + 1, ...data };
         });
         setCartelas(list);
@@ -120,7 +115,6 @@ export default function SelectCards() {
         const saved = localStorage.getItem("selectedCartelaNumbers");
         if (saved) {
           const savedNumbers = JSON.parse(saved) as number[];
-          // Filter only valid numbers present in cartelas
           const validNumbers = savedNumbers.filter((num) =>
             list.some((c) => c.number === num)
           );
@@ -130,7 +124,6 @@ export default function SelectCards() {
         setError(isAmharic ? "የካርቴላ መጫኛ አልተሳካም።" : "Failed to load cartelas.");
       }
     }
-
     fetchCartelas();
   }, [isAmharic]);
 
@@ -144,7 +137,6 @@ export default function SelectCards() {
   const toggleCartelaSelection = (index: number) => {
     const cardNumber = cartelas[index]?.number;
     if (!cardNumber) return;
-
     setSelectedCartelaNumbers((prev) =>
       prev.includes(cardNumber)
         ? prev.filter((n) => n !== cardNumber)
@@ -169,12 +161,10 @@ export default function SelectCards() {
       );
       return;
     }
-
     if (points < 50) {
       alert(isAmharic ? "በቂ ነጥብ የለዎትም።" : "Not enough points (need 50).");
       return;
     }
-
     if (!user?.email) {
       alert("User not logged in.");
       return;
@@ -200,7 +190,6 @@ export default function SelectCards() {
         return;
       }
 
-      // Save full selected cartelas data in localStorage using actual numbers
       const selectedCartelasData = selectedCartelaNumbers
         .map((num) => cartelas.find((c) => c.number === num))
         .filter(Boolean);
@@ -211,7 +200,7 @@ export default function SelectCards() {
 
       await addDoc(collection(db, "gameSessions"), {
         userEmail: user.email,
-        selectedCartelas: selectedCartelaNumbers, // send card numbers, NOT indices
+        selectedCartelas: selectedCartelaNumbers,
         betAmount,
         bonusAmount,
         bonusType: bonusOptions[bonusTypeIndex],
@@ -227,13 +216,8 @@ export default function SelectCards() {
     }
   };
 
-  const incrementBet = () => {
-    setBetAmount((v) => Math.min(v + 10, 50));
-  };
-
-  const decrementBet = () => {
-    setBetAmount((v) => Math.max(v - 10, 10));
-  };
+  const incrementBet = () => setBetAmount((v) => Math.min(v + 10, 50));
+  const decrementBet = () => setBetAmount((v) => Math.max(v - 10, 10));
 
   const winAmount =
     (betAmount * selectedCartelaNumbers.length * selectedPercent) / 100;
@@ -250,7 +234,7 @@ export default function SelectCards() {
     <div>
       {selectedCartelaNumbers.length > 0 && (
         <div className="flex gap-5 mt-7 m-10 text-4xl p-3 justify-center">
-          {selectedCartelaNumbers.map((cardNum) => (
+          {selectedCartelaNumbers.map((cardNu         m) => (
             <div
               key={cardNum}
               className="bg-blue-600 text-white rounded-full w-20 h-20 flex items-center justify-center font-bold text-3xl shadow"
@@ -269,10 +253,12 @@ export default function SelectCards() {
           {isAmharic ? "ነጥብዎ፡" : "Your Points:"} {points}
         </p>
 
+        {/* Bet, Win, Percentage in same row */}
         <div className="flex justify-between items-start w-full mb-6">
           <div className="flex items-center gap-10">
+            {/* Bet Amount */}
             <div className="flex gap-2 items-center min-w-[180px]">
-              <span className="text-black font-bold mb-3 text-lg select-none">
+              <span className="text-black font-bold text-lg select-none">
                 {isAmharic ? "የትርፍ መጠን" : "Bet Amount"}
               </span>
               <div className="flex items-center">
@@ -299,39 +285,37 @@ export default function SelectCards() {
               </div>
             </div>
 
-            <div className="flex flex-col items-center min-w-[220px]">
-              {/* Win Amount with Eye Toggle */}
-              <div className="flex items-center gap-4">
-                <span className="text-black font-bold mb-3 text-lg select-none">
-                  {isAmharic ? "የእድል መጠን" : "Win Amount"}
-                </span>
-
-                <div
-                  onClick={() => setShow(!show)}
-                  className="cursor-pointer px-4 py-2 bg-blue-100 text-blue-700 rounded-md shadow-sm hover:bg-blue-200 flex items-center gap-2 font-semibold"
-                >
-                  {show ? `${winAmount.toFixed(2)} birr` : "****"}
-                  {show ? <Eye size={18} /> : <EyeOff size={18} />}
-                </div>
+            {/* Win Amount with Eye */}
+            <div className="flex items-center gap-3">
+              <span className="text-black font-bold text-lg select-none">
+                {isAmharic ? "የእድል መጠን" : "Win Amount"}
+              </span>
+              <div
+                onClick={() => setShow(!show)}
+                className="cursor-pointer px-4 py-2 bg-blue-100 text-blue-700 rounded-md shadow-sm hover:bg-blue-200 flex items-center gap-2 font-semibold"
+              >
+                {show ? `${winAmount.toFixed(2)} birr` : "****"}
+                {show ? <Eye size={18} /> : <EyeOff size={18} />}
               </div>
+            </div>
 
-              {/* Percentage Dropdown */}
-              <div className="mt-3 relative">
-                <select
-                  value={selectedPercent}
-                  onChange={(e) => setSelectedPercent(Number(e.target.value))}
-                  className="px-4 py-2 rounded-lg border border-gray-300 text-black bg-white shadow focus:outline-none focus:ring-2 focus:ring-blue-400"
-                >
-                  {[25, 50, 75, 100].map((percent) => (
-                    <option key={percent} value={percent}>
-                      {percent}%
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* Percentage Selector */}
+            <div className="flex flex-col">
+              <select
+                value={selectedPercent}
+                onChange={(e) => setSelectedPercent(Number(e.target.value))}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-black bg-white shadow focus:outline-none focus:ring-2 focus:ring-blue-400"
+              >
+                {percentageOptions.map((percent) => (
+                  <option key={percent} value={percent}>
+                    {percent}%
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
+          {/* Buttons */}
           <div className="flex items-center gap-6">
             <button
               onClick={() => {
@@ -357,20 +341,18 @@ export default function SelectCards() {
         {error ? (
           <p className="text-red-400">{error}</p>
         ) : (
-          <div className="flex  ">
-            <div className="grid grid-cols-7 gap-4 justify-start">
+          <div className="flex">
+            <div className="grid grid-cols-30 gap-6 justify-start">
               {cartelas.map((c, idx) => {
                 const sel = selectedCartelaNumbers.includes(c.number ?? -1);
-                const disabled = false;
                 const match =
                   searchNumber &&
                   isNumberInCartela(c.numbers, Number(searchNumber));
                 return (
                   <button
                     key={c.id ?? idx}
-                    disabled={disabled}
                     onClick={() => toggleCartelaSelection(idx)}
-                    className={`w-16 h-16 rounded-full text-sm font-bold flex items-center justify-center border-2 shadow-md ${
+                    className={`w-10 h-10 rounded-full text-sm font-bold flex items-center justify-center border-2 shadow-md ${
                       sel
                         ? "bg-blue-600 text-white border-white"
                         : match
@@ -421,18 +403,15 @@ export default function SelectCards() {
                     const cardIndex = cartelas.findIndex(
                       (c) => c.number === cardNumber
                     );
-
                     if (cardIndex === -1) {
                       setEnterCardError(
                         isAmharic ? "ካርድ አልተገኘም።" : "Card not found."
                       );
                       return;
                     }
-
                     setSelectedCartelaNumbers((prev) =>
                       prev.includes(cardNumber) ? prev : [...prev, cardNumber]
                     );
-
                     setShowEnterCardModal(false);
                     setEnteredCardNumber("");
                     setEnterCardError("");
