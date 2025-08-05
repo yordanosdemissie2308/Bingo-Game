@@ -234,7 +234,7 @@ export default function SelectCards() {
     <div>
       {selectedCartelaNumbers.length > 0 && (
         <div className="flex gap-5 mt-7 m-10 text-4xl p-3 justify-center">
-          {selectedCartelaNumbers.map((cardNu         m) => (
+          {selectedCartelaNumbers.map((cardNum) => (
             <div
               key={cardNum}
               className="bg-blue-600 text-white rounded-full w-20 h-20 flex items-center justify-center font-bold text-3xl shadow"
