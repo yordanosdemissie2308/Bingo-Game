@@ -7,6 +7,7 @@ import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 import Calendar from "./Calendar";
 import { auth, db } from "./Firbase";
 import DownloadCardsButton from "./DownloadCardsButton";
+import Sidebar from "./Sidebar";
 
 interface DashboardProps {
   bingoPageId: string;
@@ -89,59 +90,62 @@ export default function Dashboard({ bingoPageId }: DashboardProps) {
   }
 
   return (
-    <div className="p-6 min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        {/* Top Bar */}
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-4xl font-extrabold text-center">
-            🎯 My Bingo Dashboard
-          </h2>
-          <DownloadCardsButton />
-        </div>
+    <div className="flex gap-2 min-h-screen">
+      <Sidebar />
+      <div className="flex-1 flex flex-col justify-center items-center p-6">
+        <div className="w-full max-w-7xl">
+          {/* Top Bar */}
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-4xl font-extrabold text-center w-full">
+              🎯 My Bingo Dashboard
+            </h2>
+            <DownloadCardsButton />
+          </div>
 
-        {/* Info Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {/* Points */}
-          <Card
-            title="Points"
-            value={
-              showPoints
-                ? points.toString()
-                : "•".repeat(points.toString().length)
-            }
-            onToggle={() => setShowPoints(!showPoints)}
-            show={showPoints}
-          />
+          {/* Info Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {/* Points */}
+            <Card
+              title="Points"
+              value={
+                showPoints
+                  ? points.toString()
+                  : "•".repeat(points.toString().length)
+              }
+              onToggle={() => setShowPoints(!showPoints)}
+              show={showPoints}
+            />
 
-          {/* Games Played */}
-          <Card
-            title="Games Played"
-            value={showGamesPlayed ? playCount.toString() : "••••"}
-            onToggle={() => setShowGamesPlayed(!showGamesPlayed)}
-            show={showGamesPlayed}
-          />
+            {/* Games Played */}
+            <Card
+              title="Games Played"
+              value={showGamesPlayed ? playCount.toString() : "••••"}
+              onToggle={() => setShowGamesPlayed(!showGamesPlayed)}
+              show={showGamesPlayed}
+            />
 
-          {/* Bonus */}
-          <Card
-            title="Bonus Earned"
-            value={showBonus ? `${bonusAmountTotal} birr` : "••••"}
-            onToggle={() => setShowBonus(!showBonus)}
-            show={showBonus}
-          />
+            {/* Bonus */}
+            <Card
+              title="Bonus Earned"
+              value={showBonus ? `${bonusAmountTotal} birr` : "••••"}
+              onToggle={() => setShowBonus(!showBonus)}
+              show={showBonus}
+            />
 
-          {/* Revenue */}
-          <Card
-            title="Total Revenue"
-            value={showRevenue ? `${revenue} birr` : "••••"}
-            onToggle={() => setShowRevenue(!showRevenue)}
-            show={showRevenue}
-            className="sm:col-span-2 md:col-span-1"
-          />
-        </div>
+            {/* Revenue */}
+            <Card
+              title="Total Revenue"
+              value={showRevenue ? `${revenue} birr` : "••••"}
+              onToggle={() => setShowRevenue(!showRevenue)}
+              show={showRevenue}
+              className="sm:col-span-2 md:col-span-1"
+            />
+          </div>
 
-        {/* Calendar */}
-        <div className="mt-14 max-w-md mx-auto">
-          <Calendar />
+          {/* Calendar */}
+          <div className="mt-14 max-w-md mx-auto">
+            <Calendar />
+          </div>
         </div>
       </div>
     </div>

@@ -15,6 +15,7 @@ import { db, auth } from "./Firbase";
 import { Eye, EyeOff } from "lucide-react";
 
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
+import Sidebar from "./Sidebar";
 
 const gameTypes = ["Person", "Heart", "H", "T", "P"];
 
@@ -72,7 +73,9 @@ export default function SelectCards() {
   const isAmharic = language === "Amharic";
   const points = userData.points ?? 0;
 
-  const percentageOptions = [25, 50, 75, 100];
+  const percentageOptions = [
+    20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100,
+  ];
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -232,203 +235,248 @@ export default function SelectCards() {
   }
 
   return (
-    <div>
-      {selectedCartelaNumbers.length > 0 && (
-        <div className="flex gap-5 mt-7 m-10 text-4xl p-3 justify-center">
-          {selectedCartelaNumbers.map((cardNum) => (
-            <div
-              key={cardNum}
-              className="bg-blue-600 text-white rounded-full w-20 h-20 flex items-center justify-center font-bold text-3xl shadow"
-            >
-              {cardNum}
+    <>
+      <div className="flex justify-between items-center gap-3">
+        <Sidebar />
+        <div>
+          {selectedCartelaNumbers.length > 0 && (
+            <div className="mt-10 text-center">
+              <h2 className="text-2xl font-semibold mb-4 text-gray-800">
+                🎯 Selected Cartelas
+              </h2>
+
+              <div className="flex flex-wrap justify-center gap-4 px-6">
+                {selectedCartelaNumbers
+                  .slice(selectedCartelaNumbers.length > 5 ? 5 : 0) // hide first 5 if more than 5
+                  .map((cardNum) => (
+                    <div
+                      key={cardNum}
+                      className="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 text-white flex items-center justify-center text-3xl font-bold shadow-lg transform transition-transform hover:scale-110"
+                    >
+                      {cardNum}
+                    </div>
+                  ))}
+              </div>
+
+              {selectedCartelaNumbers.length > 5 && (
+                <p className="mt-4 text-sm text-gray-500 italic">
+                  (Showing latest {selectedCartelaNumbers.length - 5} cards)
+                </p>
+              )}
             </div>
-          ))}
-        </div>
-      )}
-      <div className="min-h-screen p-6 flex flex-col items-start ">
-        <h1 className="text-5xl font-extrabold mb-10">
-          {isAmharic ? "ካርቴላ ምረጥ" : "Select Your Cartelas"}
-        </h1>
+          )}
 
-        <p className="text-xl font-bold mb-6">
-          {isAmharic ? "ነጥብዎ፡" : "Your Points:"} {points}
-        </p>
+          <div className="min-h-screen p-6 flex flex-col items-start ">
+            <h1 className="text-5xl font-extrabold mb-10">
+              {isAmharic ? "ካርቴላ ምረጥ" : "Select Your Cartelas"}
+            </h1>
 
-        {/* Bet, Win, Percentage in same row */}
-        <div className="flex justify-between items-start w-full mb-6">
-          <div className="flex items-center gap-10">
-            {/* Bet Amount */}
-            <div className="flex gap-2 items-center min-w-[180px]">
-              <span className="text-black font-bold text-lg select-none">
-                {isAmharic ? "የትርፍ መጠን" : "Bet Amount"}
-              </span>
-              <div className="flex items-center">
-                <button
-                  onClick={decrementBet}
-                  disabled={betAmount <= 10}
-                  className="w-10 h-10 border-black rounded-md shadow-md text-red-700 text-2xl"
-                >
-                  -
-                </button>
-                <div className="p-[2px] rounded-2xl">
-                  <div className="bg-blue-200 px-6 py-2 text-black font-bold rounded-sm min-w-[100px] text-center relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-1/2 bg-white opacity-10 rounded-t-sm pointer-events-none" />
-                    {betAmount} birr
+            <p className="text-xl font-bold mb-6">
+              {isAmharic ? "ነጥብዎ፡" : "Your Points:"} {points}
+            </p>
+
+            {/* Bet, Win, Percentage in same row */}
+            <div className="flex justify-between items-start w-full mb-6">
+              <div className="flex items-center gap-10">
+                {/* Bet Amount */}
+                <div className="flex gap-2 items-center min-w-[180px]">
+                  <span className="text-black font-bold text-lg select-none">
+                    {isAmharic ? "የትርፍ መጠን" : "Bet Amount"}
+                  </span>
+                  <div className="flex items-center">
+                    <button
+                      onClick={decrementBet}
+                      disabled={betAmount <= 10}
+                      className="w-10 h-10 border-black rounded-md shadow-md text-red-700 text-2xl"
+                    >
+                      -
+                    </button>
+                    <div className="p-[2px] rounded-2xl">
+                      <div className="bg-blue-200 px-6 py-2 text-black font-bold rounded-sm min-w-[100px] text-center relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-1/2 bg-white opacity-10 rounded-t-sm pointer-events-none" />
+                        {betAmount} birr
+                      </div>
+                    </div>
+                    <button
+                      onClick={incrementBet}
+                      disabled={betAmount >= 50}
+                      className="w-10 h-10 border-black rounded-md shadow-md text-black text-2xl"
+                    >
+                      +
+                    </button>
                   </div>
                 </div>
-                <button
-                  onClick={incrementBet}
-                  disabled={betAmount >= 50}
-                  className="w-10 h-10 border-black rounded-md shadow-md text-black text-2xl"
-                >
-                  +
-                </button>
-              </div>
-            </div>
 
-            {/* Win Amount with Eye */}
-            <div className="flex items-center gap-3">
-              <span className="text-black font-bold text-lg select-none">
-                {isAmharic ? "የእድል መጠን" : "Win Amount"}
-              </span>
-              <div
-                onClick={() => setShow(!show)}
-                className="cursor-pointer px-4 py-2 bg-blue-100 text-blue-700 rounded-md shadow-sm hover:bg-blue-200 flex items-center gap-2 font-semibold"
-              >
-                {show ? `${winAmount.toFixed(2)} birr` : "****"}
-                {show ? <Eye size={18} /> : <EyeOff size={18} />}
-              </div>
-            </div>
-
-            {/* Percentage Selector */}
-            <div className="flex items-center gap-3">
-              <span className="text-black font-bold text-lg select-none">
-                {isAmharic ? "መቶኛ" : "home"}
-              </span>
-              <div
-                onClick={() => setShowPercent(!showPercent)}
-                className="cursor-pointer px-4 py-2 bg-blue-100 text-blue-700 rounded-md shadow-sm hover:bg-blue-200 flex items-center gap-2 font-semibold"
-              >
-                {showPercent ? `${selectedPercent}%` : "****"}
-                {showPercent ? <Eye size={18} /> : <EyeOff size={18} />}
-              </div>
-            </div>
-          </div>
-
-          {/* Buttons */}
-          <div className="flex items-center gap-6">
-            <button
-              onClick={() => {
-                setEnteredCardNumber("");
-                setEnterCardError("");
-                setShowEnterCardModal(true);
-              }}
-              className="bg-gradient-to-br from-orange-400 to-orange-600 text-white font-extrabold px-6 py-3 rounded-md shadow-lg text-lg transition hover:scale-105 active:scale-95"
-            >
-              {isAmharic ? "ካርድ አስገባ" : "Enter Card"}
-            </button>
-            <button
-              onClick={handlePlayClick}
-              disabled={!selectedCartelaNumbers.length}
-              className="bg-gradient-to-br from-orange-400 to-orange-600 text-white font-extrabold px-10 py-4 rounded-md shadow-lg text-xl 
-        transition hover:scale-105 hover:brightness-110 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {isAmharic ? "ጀምር" : "Play"}
-            </button>
-          </div>
-        </div>
-
-        {error ? (
-          <p className="text-red-400">{error}</p>
-        ) : (
-          <div className="flex">
-            <div className="grid grid-cols-30 gap-6 justify-start">
-              {cartelas.map((c, idx) => {
-                const sel = selectedCartelaNumbers.includes(c.number ?? -1);
-                const match =
-                  searchNumber &&
-                  isNumberInCartela(c.numbers, Number(searchNumber));
-                return (
-                  <button
-                    key={c.id ?? idx}
-                    onClick={() => toggleCartelaSelection(idx)}
-                    className={`w-10 h-10 rounded-full text-sm font-bold flex items-center justify-center border-2 shadow-md ${
-                      sel
-                        ? "bg-blue-600 text-white border-white"
-                        : match
-                          ? "bg-orange-600 text-white border-white"
-                          : "bg-gray-300 text-black border-gray-500"
-                    }`}
+                {/* Win Amount with Eye */}
+                <div className="flex items-center gap-3">
+                  <span className="text-black font-bold text-lg select-none">
+                    {isAmharic ? "የእድል መጠን" : "Win Amount"}
+                  </span>
+                  <div
+                    onClick={() => setShow(!show)}
+                    className="cursor-pointer px-4 py-2 bg-blue-100 text-blue-700 rounded-md shadow-sm hover:bg-blue-200 flex items-center gap-2 font-semibold"
                   >
-                    {c.number ?? idx + 1}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+                    {show ? `${winAmount.toFixed(2)} birr` : "****"}
+                    {show ? <Eye size={18} /> : <EyeOff size={18} />}
+                  </div>
+                </div>
 
-        {showEnterCardModal && (
-          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-60">
-            <div className="bg-white rounded-lg p-6 w-full max-w-sm shadow-xl">
-              <h2 className="text-xl font-bold mb-4 text-black">
-                {isAmharic ? "ካርድ ቁጥር ያስገቡ" : "Enter Card Number"}
-              </h2>
-              <input
-                type="number"
-                value={enteredCardNumber}
-                onChange={(e) => setEnteredCardNumber(e.target.value)}
-                placeholder={isAmharic ? "ካርድ ቁጥር..." : "Card number..."}
-                className="w-full border border-gray-300 rounded-md px-4 py-2 mb-4 text-black"
-              />
-              {enterCardError && (
-                <p className="text-red-500 text-sm mb-2">{enterCardError}</p>
-              )}
-              <div className="flex justify-end gap-4">
-                <button
-                  onClick={() => setShowEnterCardModal(false)}
-                  className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded"
-                >
-                  {isAmharic ? "ይቅር" : "Cancel"}
-                </button>
+                {/* Percentage Selector */}
+                {/* Percentage Selector with Eye/EyeOff Toggle */}
+
+                <div className="flex  gap-1">
+                  {/* Label */}
+                  <span className="text-black font-bold text-lg select-none">
+                    {isAmharic ? "መቶኛ" : "home"}
+                  </span>
+
+                  {/* Dropdown with icon, centered like your Win Amount */}
+                  <div className="relative w-40">
+                    <select
+                      value={selectedPercent}
+                      onChange={(e) =>
+                        setSelectedPercent(Number(e.target.value))
+                      }
+                      className="w-full px-4 py-2 pr-12 rounded-lg border border-gray-300 text-black bg-white shadow focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    >
+                      {percentageOptions.map((percent) => (
+                        <option key={percent} value={percent}>
+                          {showPercent ? `${percent}%` : "****"}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Icon centered vertically inside select box */}
+                    <div
+                      onClick={() => setShowPercent(!showPercent)}
+                      className="absolute inset-y-0 right-3 flex items-center text-blue-700 cursor-pointer"
+                    >
+                      {showPercent ? <Eye size={18} /> : <EyeOff size={18} />}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex items-center gap-6">
                 <button
                   onClick={() => {
-                    const cardNumber = parseInt(enteredCardNumber);
-                    if (isNaN(cardNumber)) {
-                      setEnterCardError(
-                        isAmharic ? "የተሳሳተ ቁጥር ነው።" : "Invalid card number."
-                      );
-                      return;
-                    }
-                    const cardIndex = cartelas.findIndex(
-                      (c) => c.number === cardNumber
-                    );
-                    if (cardIndex === -1) {
-                      setEnterCardError(
-                        isAmharic ? "ካርድ አልተገኘም።" : "Card not found."
-                      );
-                      return;
-                    }
-                    setSelectedCartelaNumbers((prev) =>
-                      prev.includes(cardNumber) ? prev : [...prev, cardNumber]
-                    );
-                    setShowEnterCardModal(false);
                     setEnteredCardNumber("");
                     setEnterCardError("");
+                    setShowEnterCardModal(true);
                   }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                  className="bg-gradient-to-br from-orange-400 to-orange-600 text-white font-extrabold px-6 py-3 rounded-md shadow-lg text-lg transition hover:scale-105 active:scale-95"
                 >
-                  {isAmharic ? "አስገባ" : "Add"}
+                  {isAmharic ? "ካርድ አስገባ" : "Enter Card"}
+                </button>
+                <button
+                  onClick={handlePlayClick}
+                  disabled={!selectedCartelaNumbers.length}
+                  className="bg-gradient-to-br from-orange-400 to-orange-600 text-white font-extrabold px-10 py-4 rounded-md shadow-lg text-xl 
+        transition hover:scale-105 hover:brightness-110 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isAmharic ? "ጀምር" : "Play"}
                 </button>
               </div>
             </div>
+
+            {error ? (
+              <p className="text-red-400">{error}</p>
+            ) : (
+              <div className="flex">
+                <div className="grid grid-cols-30 gap-6 justify-start">
+                  {cartelas.map((c, idx) => {
+                    const sel = selectedCartelaNumbers.includes(c.number ?? -1);
+                    const match =
+                      searchNumber &&
+                      isNumberInCartela(c.numbers, Number(searchNumber));
+                    return (
+                      <button
+                        key={c.id ?? idx}
+                        onClick={() => toggleCartelaSelection(idx)}
+                        className={`w-10 h-10 rounded-full text-sm font-bold flex items-center justify-center border-2 shadow-md ${
+                          sel
+                            ? "bg-blue-600 text-white border-white"
+                            : match
+                              ? "bg-orange-600 text-white border-white"
+                              : "bg-gray-300 text-black border-gray-500"
+                        }`}
+                      >
+                        {c.number ?? idx + 1}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {showEnterCardModal && (
+              <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-60">
+                <div className="bg-white rounded-lg p-6 w-full max-w-sm shadow-xl">
+                  <h2 className="text-xl font-bold mb-4 text-black">
+                    {isAmharic ? "ካርድ ቁጥር ያስገቡ" : "Enter Card Number"}
+                  </h2>
+                  <input
+                    type="number"
+                    value={enteredCardNumber}
+                    onChange={(e) => setEnteredCardNumber(e.target.value)}
+                    placeholder={isAmharic ? "ካርድ ቁጥር..." : "Card number..."}
+                    className="w-full border border-gray-300 rounded-md px-4 py-2 mb-4 text-black"
+                  />
+                  {enterCardError && (
+                    <p className="text-red-500 text-sm mb-2">
+                      {enterCardError}
+                    </p>
+                  )}
+                  <div className="flex justify-end gap-4">
+                    <button
+                      onClick={() => setShowEnterCardModal(false)}
+                      className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded"
+                    >
+                      {isAmharic ? "ይቅር" : "Cancel"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        const cardNumber = parseInt(enteredCardNumber);
+                        if (isNaN(cardNumber)) {
+                          setEnterCardError(
+                            isAmharic ? "የተሳሳተ ቁጥር ነው።" : "Invalid card number."
+                          );
+                          return;
+                        }
+                        const cardIndex = cartelas.findIndex(
+                          (c) => c.number === cardNumber
+                        );
+                        if (cardIndex === -1) {
+                          setEnterCardError(
+                            isAmharic ? "ካርድ አልተገኘም።" : "Card not found."
+                          );
+                          return;
+                        }
+                        setSelectedCartelaNumbers((prev) =>
+                          prev.includes(cardNumber)
+                            ? prev
+                            : [...prev, cardNumber]
+                        );
+                        setShowEnterCardModal(false);
+                        setEnteredCardNumber("");
+                        setEnterCardError("");
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                    >
+                      {isAmharic ? "አስገባ" : "Add"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        )}
+          <div className="flex justify-center items-center shadow-2xl rounded-3xl gap-4 p-6 self-end">
+            selected cards number:
+            <p>{selectedCartelaNumbers.length}</p>
+          </div>
+        </div>
       </div>
-      <div className="flex justify-center items-center shadow-2xl rounded-3xl gap-4 p-6 self-end">
-        selected cards number:
-        <p>{selectedCartelaNumbers.length}</p>
-      </div>
-    </div>
+    </>
   );
 }

@@ -19,7 +19,7 @@ const LoginPage = () => {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push("web/side-bar");
+      router.push("web/home-home");
     } catch (err: any) {
       setError("Invalid email or password. Please try again.");
       setLoading(false);

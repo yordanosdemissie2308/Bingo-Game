@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "./Firbase";
+import Sidebar from "./Sidebar";
 
 export default function PlayBingo() {
+  const route = useRouter();
   const params = useSearchParams();
   const selectedParam = params?.get("selected") ?? "";
   const bet = params?.get("bet") ?? "0";
@@ -277,9 +279,11 @@ export default function PlayBingo() {
   }
 
   return (
-    <>
-      <style>
-        {`
+    <div className="flex justify-between items-center gap-2">
+      <Sidebar />
+      <>
+        <style>
+          {`
           .marked {
             background-color: #facc15;
             color: black;
@@ -325,267 +329,224 @@ export default function PlayBingo() {
             }
           }
         `}
-      </style>
-      <div className="relative p-6 min-h-screen text-white bg-gray-100">
-        {/* Nav Buttons */}
-        <div>
-          <button
-            onClick={() => {
-              setExpandBingoOnly(true);
-              setShowBingoGrid(true);
-            }}
-            className="fixed top-6 left-6 z-50 px-4 py-3 bg-green-600 hover:bg-green-700 rounded-full shadow-lg"
-            title="Enter Fullscreen"
-          >
-            ⛶
-          </button>
-          <button
-            onClick={resetAll}
-            className="fixed top-6 right-6 z-50 px-4 py-3 bg-red-600 hover:bg-red-700 rounded-full shadow-lg"
-            title="Reset Game"
-          >
-            ♻ Reset
-          </button>
-        </div>
-
-        {/* Top Layout */}
-        <div className="flex flex-col md:flex-row justify-center items-center gap-8 pt-20 max-w-6xl mx-auto">
-          <div className="w-48 h-72 flex-shrink-0 flex items-center justify-center">
-            <div className="relative">
-              <div className="w-52 h-52 rounded-full border-8 border-red-700 bg-white flex items-center justify-center shadow-2xl">
-                <span className="text-5xl font-black text-red-600">
-                  {lastLabel ?? "0/75"}
-                </span>
-              </div>
-            </div>
+        </style>
+        <div className="relative p-6 min-h-screen text-white bg-gray-100">
+          {/* Nav Buttons */}
+          <div>
+            <button
+              onClick={() => {
+                setExpandBingoOnly(true);
+                setShowBingoGrid(true);
+              }}
+              className="fixed top-6 left-6 z-50 px-4 py-3 bg-green-600 hover:bg-green-700 rounded-full shadow-lg"
+              title="Enter Fullscreen"
+            >
+              ⛶
+            </button>
+            <button
+              onClick={resetAll}
+              className="fixed top-6 right-6 z-50 px-4 py-3 bg-red-600 hover:bg-red-700 rounded-full shadow-lg"
+              title="Reset Game"
+            >
+              ♻ Reset
+            </button>
           </div>
 
-          {/* Bingo Grid */}
-          {showBingoGrid && (
-            <div
-              className={`${
-                expandBingoOnly
-                  ? "fixed top-0 left-0 w-screen h-screen z-50 bg-blue-900 p-8 flex flex-col items-center justify-start gap-6 overflow-auto"
-                  : "flex-grow"
-              } transition-all duration-500 rounded-lg bg-white bg-opacity-20 shadow-inner`}
-            >
-              {expandBingoOnly && (
-                <button
-                  onClick={() => setExpandBingoOnly(false)}
-                  className="absolute top-4 right-4 px-5 py-2 text-lg bg-red-600 hover:bg-red-700 rounded-full text-white shadow"
-                >
-                  ✖ Exit Fullscreen
-                </button>
-              )}
-
-              {expandBingoOnly && (
-                <div className="mt-16">
-                  <div className="w-52 h-52 rounded-full border-8 border-red-700 bg-white flex items-center justify-center shadow-2xl">
-                    <span className="text-5xl font-black text-red-600">
-                      {lastLabel ?? "0/75"}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-10 grid grid-cols-6 gap-1 w-fit">
-                <div className="flex flex-col gap-1">
-                  {letters.map((l, i) => {
-                    const colors = [
-                      "bg-red-500 text-white",
-                      "bg-orange-500 text-white",
-                      "bg-yellow-400 text-black",
-                      "bg-green-500 text-white",
-                      "bg-blue-500 text-white",
-                    ];
-                    return (
-                      <div
-                        key={l}
-                        className={`w-14 h-14 flex items-center justify-center font-bold text-xl border border-yellow-400 shadow-[2px_2px_4px_#00000050] ${colors[i]}`}
-                      >
-                        {l}
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="col-span-5 grid grid-cols-15 gap-3 ">
-                  {letters.map((_, ci) =>
-                    Array.from({ length: 15 }).map((_, ri) => {
-                      const range = ranges[ci];
-                      if (!range) return null;
-                      const [min] = range;
-                      const n = min + ri;
-                      const isM = marked.includes(n);
-                      return (
-                        <div
-                          key={`${ci}-${ri}`}
-                          className={`h-12 w-10 flex items-center justify-center font-bold text-2xl select-none
-                            ${isM ? "marked" : "bg-white"} text-black border border-gray-400 shadow-[2px_2px_4px_#00000050]`}
-                        >
-                          {n}
-                        </div>
-                      );
-                    })
-                  )}
+          {/* Top Layout */}
+          <div className="flex flex-col md:flex-row justify-center items-center gap-8 pt-20 max-w-6xl mx-auto">
+            <div className="w-48 h-72 flex-shrink-0 flex items-center justify-center">
+              <div className="relative">
+                <div className="w-52 h-52 rounded-full border-8 border-red-700 bg-white flex items-center justify-center shadow-2xl">
+                  <span className="text-5xl font-black text-red-600">
+                    {lastLabel ?? "0/75"}
+                  </span>
                 </div>
               </div>
             </div>
-          )}
 
-          {!showBingoGrid && (
-            <button
-              onClick={() => setShowBingoGrid(true)}
-              className="mt-10 px-8 py-3 bg-green-500 rounded-full shadow-lg hover:bg-green-600 font-semibold"
-            >
-              Show Grid
-            </button>
-          )}
-        </div>
-
-        {/* Bottom Controls */}
-        <div className="flex flex-wrap justify-center gap-6 mt-8 max-w-3xl mx-auto">
-          <button
-            onClick={handlePlayClick}
-            className={`px-8 py-3 rounded-full font-bold shadow-lg transition ${
-              playing
-                ? "bg-red-600 hover:bg-orange-700"
-                : "bg-green-600 hover:bg-green-700"
-            }`}
-          >
-            {playing ? "⏸ Stop" : "▶ Play"}
-          </button>
-          <select
-            value={lang}
-            onChange={(e) => setLang(e.target.value as any)}
-            className="px-4 py-2 rounded-md bg-amber-50 text-black shadow-sm"
-          >
-            <option value="en">English</option>
-            <option value="am">Amharic</option>
-          </select>
-          <select
-            value={speed}
-            onChange={(e) => setSpeed(e.target.value)}
-            className="px-4 py-2 rounded-md bg-amber-50 text-black shadow-sm"
-          >
-            <option value="6000">6000 ms</option>
-            <option value="4000">4000 ms</option>
-            <option value="3000">3000 ms</option>
-            <option value="2000">2000 ms</option>
-          </select>
-        </div>
-
-        {/* Check Cartela Section */}
-        <div className="p-6 max-w-4xl mx-auto">
-          {!inputVisible && (
-            <button
-              onClick={() => setInputVisible(true)}
-              className="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700 mb-6"
-            >
-              Check Cartela
-            </button>
-          )}
-
-          {inputVisible && (
-            <div className="mb-6 flex items-center gap-4">
-              <input
-                type="text"
-                value={inputCardNumber}
-                onChange={(e) => setInputCardNumber(e.target.value)}
-                className="px-4 py-2 rounded text-black flex-grow"
-                placeholder="Enter card number"
-              />
-              <button
-                onClick={handleCheckCard}
-                className="bg-green-600 text-white px-5 py-2 rounded hover:bg-green-700"
+            {/* Bingo Grid */}
+            {showBingoGrid && (
+              <div
+                className={`${
+                  expandBingoOnly
+                    ? "fixed top-0 left-0 w-screen h-screen z-50 bg-blue-900 p-8 flex flex-col items-center justify-start gap-6 overflow-auto"
+                    : "flex-grow"
+                } transition-all duration-500 rounded-lg bg-white bg-opacity-20 shadow-inner`}
               >
-                Search
-              </button>
-              <button
-                onClick={handleCancel}
-                className="bg-red-600 text-white px-5 py-2 rounded hover:bg-red-700"
-              >
-                Cancel
-              </button>
-            </div>
-          )}
-
-          {error && (
-            <div className="mb-4 text-red-500 font-semibold">{error}</div>
-          )}
-
-          {showCartela && (
-            <div className="mb-10 max-w-md p-4 border border-green-500 rounded shadow-lg bg-white text-black">
-              <h3 className="font-bold text-2xl mb-3">
-                Card #{showCartela.cardNumber}{" "}
-                {checkWinning(showCartela.grid, marked).length > 0 && (
-                  <span className="text-green-600 font-semibold">(Winner)</span>
+                {expandBingoOnly && (
+                  <button
+                    onClick={() => setExpandBingoOnly(false)}
+                    className="absolute top-4 right-4 px-5 py-2 text-lg bg-red-600 hover:bg-red-700 rounded-full text-white shadow"
+                  >
+                    ✖ Exit Fullscreen
+                  </button>
                 )}
-              </h3>
-              <div className="grid grid-cols-5 gap-1">
-                {showCartela.grid.map((row: number[], rIndex: number) =>
-                  row.map((num, cIndex) => {
-                    const markedCell = marked.includes(num) || num === 0;
-                    return (
-                      <div
-                        key={`${rIndex}-${cIndex}`}
-                        className={`h-12 flex items-center justify-center border border-gray-400 font-bold
+
+                {expandBingoOnly && (
+                  <div className="mt-16">
+                    <div className="w-52 h-52 rounded-full border-8 border-red-700 bg-white flex items-center justify-center shadow-2xl">
+                      <span className="text-5xl font-black text-red-600">
+                        {lastLabel ?? "0/75"}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-10 grid grid-cols-6 gap-1 w-fit">
+                  <div className="flex flex-col gap-1">
+                    {letters.map((l, i) => {
+                      const colors = [
+                        "bg-red-500 text-white",
+                        "bg-orange-500 text-white",
+                        "bg-yellow-400 text-black",
+                        "bg-green-500 text-white",
+                        "bg-blue-500 text-white",
+                      ];
+                      return (
+                        <div
+                          key={l}
+                          className={`w-14 h-14 flex items-center justify-center font-bold text-xl border border-yellow-400 shadow-[2px_2px_4px_#00000050] ${colors[i]}`}
+                        >
+                          {l}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="col-span-5 grid grid-cols-15 gap-3 ">
+                    {letters.map((_, ci) =>
+                      Array.from({ length: 15 }).map((_, ri) => {
+                        const range = ranges[ci];
+                        if (!range) return null;
+                        const [min] = range;
+                        const n = min + ri;
+                        const isM = marked.includes(n);
+                        return (
+                          <div
+                            key={`${ci}-${ri}`}
+                            className={`h-12 w-10 flex items-center justify-center font-bold text-2xl select-none
+                            ${isM ? "marked" : "bg-white"} text-black border border-gray-400 shadow-[2px_2px_4px_#00000050]`}
+                          >
+                            {n}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!showBingoGrid && (
+              <button
+                onClick={() => setShowBingoGrid(true)}
+                className="mt-10 px-8 py-3 bg-green-500 rounded-full shadow-lg hover:bg-green-600 font-semibold"
+              >
+                Show Grid
+              </button>
+            )}
+          </div>
+
+          {/* Bottom Controls */}
+          <div className="flex flex-wrap justify-center gap-6 mt-8 max-w-3xl mx-auto">
+            <button
+              onClick={handlePlayClick}
+              className={`px-8 py-3 rounded-full font-bold shadow-lg transition ${
+                playing
+                  ? "bg-red-600 hover:bg-orange-700"
+                  : "bg-green-600 hover:bg-green-700"
+              }`}
+            >
+              {playing ? "⏸ Stop" : "▶ Play"}
+            </button>
+            <select
+              value={lang}
+              onChange={(e) => setLang(e.target.value as any)}
+              className="px-4 py-2 rounded-md bg-amber-50 text-black shadow-sm"
+            >
+              <option value="en">English</option>
+              <option value="am">Amharic</option>
+            </select>
+            <select
+              value={speed}
+              onChange={(e) => setSpeed(e.target.value)}
+              className="px-4 py-2 rounded-md bg-amber-50 text-black shadow-sm"
+            >
+              <option value="6000">6000 ms</option>
+              <option value="4000">4000 ms</option>
+              <option value="3000">3000 ms</option>
+              <option value="2000">2000 ms</option>
+            </select>
+            <button
+              onClick={() => route.push("./selected-card")}
+              className="mt-3 px-6 py-3 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold shadow-lg hover:from-blue-700 hover:to-purple-700 transition duration-300"
+            >
+              🎮 Create New Game
+            </button>
+          </div>
+
+          {/* Check Cartela Section */}
+          <div className="p-6 max-w-4xl mx-auto">
+            {!inputVisible && (
+              <button
+                onClick={() => setInputVisible(true)}
+                className="bg-blue-600 text-white px-6 py-3 rounded hover:bg-blue-700 mb-6"
+              >
+                Check Cartela
+              </button>
+            )}
+
+            {inputVisible && (
+              <div className="mb-6 flex items-center gap-4">
+                <input
+                  type="text"
+                  value={inputCardNumber}
+                  onChange={(e) => setInputCardNumber(e.target.value)}
+                  className="px-4 py-2 rounded text-black flex-grow"
+                  placeholder="Enter card number"
+                />
+                <button
+                  onClick={handleCheckCard}
+                  className="bg-green-600 text-white px-5 py-2 rounded hover:bg-green-700"
+                >
+                  Search
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="bg-red-600 text-white px-5 py-2 rounded hover:bg-red-700"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+
+            {error && (
+              <div className="mb-4 text-red-500 font-semibold">{error}</div>
+            )}
+
+            {showCartela && (
+              <div className="mb-10 max-w-md p-4 border border-green-500 rounded shadow-lg bg-white text-black">
+                <h3 className="font-bold text-2xl mb-3">
+                  Card #{showCartela.cardNumber}{" "}
+                  {checkWinning(showCartela.grid, marked).length > 0 && (
+                    <span className="text-green-600 font-semibold">
+                      (Winner)
+                    </span>
+                  )}
+                </h3>
+                <div className="grid grid-cols-5 gap-1">
+                  {showCartela.grid.map((row: number[], rIndex: number) =>
+                    row.map((num, cIndex) => {
+                      const markedCell = marked.includes(num) || num === 0;
+                      return (
+                        <div
+                          key={`${rIndex}-${cIndex}`}
+                          className={`h-12 flex items-center justify-center border border-gray-400 font-bold
                           ${
                             markedCell
                               ? "bg-yellow-300 text-black"
                               : "bg-white text-black"
                           }
                         `}
-                      >
-                        {num === 0 ? "FREE" : num}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Show Cards */}
-        <div className="max-w-6xl mx-auto mt-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10 px-4">
-          {cards.map((card, index) => {
-            const cardWinners = winners
-              .filter((w) => w.cardIndex === index)
-              .map((w) => w.type);
-            const hasWin = cardWinners.length > 0;
-            return (
-              <div
-                key={index}
-                className={`relative rounded-xl border border-gray-300 bg-gray-50 text-black p-4 shadow-md ${
-                  hasWin ? "winner-card" : ""
-                }`}
-              >
-                {/* Winner message at top */}
-                {hasWin && (
-                  <div className="winner-message">
-                    🎉 Winner: {cardWinners.join(", ")} 🎉
-                  </div>
-                )}
-
-                <h3 className="text-xl font-bold mb-4 text-center">
-                  Cartela #{index + 1}
-                </h3>
-
-                <div className="grid grid-cols-5 gap-1">
-                  {card.map((row, rIdx) =>
-                    row.map((num, cIdx) => {
-                      const isMarkedCell = marked.includes(num) || num === 0;
-                      return (
-                        <div
-                          key={`${rIdx}-${cIdx}`}
-                          onClick={() => toggleMarkNumber(num)}
-                          className={`h-14 flex items-center justify-center cursor-pointer font-bold select-none rounded
-                            ${
-                              isMarkedCell
-                                ? "bg-yellow-400 text-black shadow-lg"
-                                : "bg-white text-black"
-                            }
-                            border border-gray-300`}
                         >
                           {num === 0 ? "FREE" : num}
                         </div>
@@ -594,10 +555,62 @@ export default function PlayBingo() {
                   )}
                 </div>
               </div>
-            );
-          })}
+            )}
+          </div>
+
+          {/* Show Cards */}
+          <div className="max-w-6xl mx-auto mt-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10 px-4">
+            {cards.map((card, index) => {
+              const cardWinners = winners
+                .filter((w) => w.cardIndex === index)
+                .map((w) => w.type);
+              const hasWin = cardWinners.length > 0;
+              return (
+                <div
+                  key={index}
+                  className={`relative rounded-xl border border-gray-300 bg-gray-50 text-black p-4 shadow-md ${
+                    hasWin ? "winner-card" : ""
+                  }`}
+                >
+                  {/* Winner message at top */}
+                  {hasWin && (
+                    <div className="winner-message">
+                      🎉 Winner: {cardWinners.join(", ")} 🎉
+                    </div>
+                  )}
+
+                  <h3 className="text-xl font-bold mb-4 text-center">
+                    Cartela #{index + 1}
+                  </h3>
+
+                  <div className="grid grid-cols-5 gap-1">
+                    {card.map((row, rIdx) =>
+                      row.map((num, cIdx) => {
+                        const isMarkedCell = marked.includes(num) || num === 0;
+                        return (
+                          <div
+                            key={`${rIdx}-${cIdx}`}
+                            onClick={() => toggleMarkNumber(num)}
+                            className={`h-14 flex items-center justify-center cursor-pointer font-bold select-none rounded
+                            ${
+                              isMarkedCell
+                                ? "bg-yellow-400 text-black shadow-lg"
+                                : "bg-white text-black"
+                            }
+                            border border-gray-300`}
+                          >
+                            {num === 0 ? "FREE" : num}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </div>
-    </>
+      </>
+    </div>
   );
 }

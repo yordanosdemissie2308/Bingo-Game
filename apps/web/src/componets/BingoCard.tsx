@@ -9,6 +9,7 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import { db } from "./Firbase";
+import Sidebar from "./Sidebar";
 
 export default function BingoCard() {
   const columns = ["B", "I", "N", "G", "O"] as const;
@@ -200,163 +201,167 @@ export default function BingoCard() {
   }, []);
 
   return (
-    <div className="max-w-4xl mx-auto mt-10 p-4 space-y-10">
-      {/* Add Numbers Form */}
-      <div className="shadow rounded-lg bg-white p-6">
-        <h2 className="text-2xl font-bold mb-4 text-gray-800">Add Numbers</h2>
+    <div className="flex justify-between items-center gap-2">
+      <Sidebar />
 
-        {/* Column Headers */}
-        <div className="grid grid-cols-5 gap-2 text-center font-bold text-lg mb-2">
-          {columns.map((col) => (
-            <div
-              key={col}
-              className="bg-blue-500 text-white p-2 rounded select-none"
-            >
-              {col}
-            </div>
-          ))}
-        </div>
+      <div className="max-w-4xl mx-auto mt-10 p-4 space-y-10">
+        {/* Add Numbers Form */}
+        <div className="shadow rounded-lg bg-white p-6">
+          <h2 className="text-2xl font-bold mb-4 text-gray-800">Add Numbers</h2>
 
-        {/* Input Grid */}
-        <div className="grid grid-cols-5 gap-2 text-center">
-          {Array.from({ length: 5 }).map((_, rowIndex) =>
-            columns.map((col) => {
-              if (col === "N" && rowIndex === 2) {
-                return (
-                  <div
-                    key={`${col}-${rowIndex}`}
-                    className="p-2 border rounded bg-black text-white font-bold select-none"
-                  >
-                    FREE
-                  </div>
-                );
-              }
-              return (
-                <input
-                  key={`${col}-${rowIndex}`}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={2}
-                  className="border rounded p-2 text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={gridValues[col]?.[rowIndex] ?? ""}
-                  onChange={(e) =>
-                    handleInputChange(col, rowIndex, e.target.value)
-                  }
-                />
-              );
-            })
-          )}
-        </div>
+          {/* Column Headers */}
+          <div className="grid grid-cols-5 gap-2 text-center font-bold text-lg mb-2">
+            {columns.map((col) => (
+              <div
+                key={col}
+                className="bg-blue-500 text-white p-2 rounded select-none"
+              >
+                {col}
+              </div>
+            ))}
+          </div>
 
-        <div className="mt-4 flex gap-4">
-          <button
-            onClick={handleGenerateCard}
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
-          >
-            Generate Random Card
-          </button>
-          <button
-            onClick={addCardToFirebase}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
-          >
-            Save Cartela
-          </button>
-        </div>
-      </div>
-
-      {/* Saved Cards Section */}
-      <div className="shadow rounded-lg bg-white p-6">
-        <h2 className="text-2xl font-bold mb-4 text-gray-800">Saved Cards</h2>
-
-        <div className="flex flex-wrap gap-3">
-          {cartelas.length === 0 && (
-            <div className="text-gray-600 italic">No saved cartelas yet.</div>
-          )}
-          {cartelas.map(({ id }, index) => (
-            <button
-              key={id}
-              onClick={() => cartelas[index] && openModal(cartelas[index])}
-              className="bg-blue-200 hover:bg-blue-300 rounded px-4 py-2 text-lg font-semibold transition"
-              title={`Cartela #${index + 1}`}
-            >
-              {index + 1}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Modal for Viewing/Editing Cartela */}
-      {modalOpen && selectedCartela && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg max-w-xl w-full p-6 relative max-h-[90vh] overflow-auto">
-            <h3 className="text-xl font-bold mb-4 text-gray-800">
-              Edit Cartela #
-              {cartelas.findIndex((c) => c.id === selectedCartela.id) + 1}
-            </h3>
-
-            {/* Editable Grid in Modal */}
-            <div className="grid grid-cols-5 gap-2 text-center mb-4">
-              {columns.map((col) => (
-                <div
-                  key={`header-${col}`}
-                  className="font-bold text-lg bg-blue-500 text-white rounded select-none p-2"
-                >
-                  {col}
-                </div>
-              ))}
-
-              {Array.from({ length: 5 }).map((_, rowIndex) =>
-                columns.map((col) => {
-                  if (col === "N" && rowIndex === 2) {
-                    return (
-                      <div
-                        key={`free-modal-${col}-${rowIndex}`}
-                        className="p-2 border rounded bg-black text-white font-bold select-none"
-                      >
-                        FREE
-                      </div>
-                    );
-                  }
+          {/* Input Grid */}
+          <div className="grid grid-cols-5 gap-2 text-center">
+            {Array.from({ length: 5 }).map((_, rowIndex) =>
+              columns.map((col) => {
+                if (col === "N" && rowIndex === 2) {
                   return (
-                    <input
-                      key={`input-modal-${col}-${rowIndex}`}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={2}
-                      className="border rounded p-2 text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      value={selectedCartela.data[col]?.[rowIndex] ?? ""}
-                      onChange={(e) =>
-                        handleModalInputChange(col, rowIndex, e.target.value)
-                      }
-                    />
+                    <div
+                      key={`${col}-${rowIndex}`}
+                      className="p-2 border rounded bg-black text-white font-bold select-none"
+                    >
+                      FREE
+                    </div>
                   );
-                })
-              )}
-            </div>
+                }
+                return (
+                  <input
+                    key={`${col}-${rowIndex}`}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={2}
+                    className="border rounded p-2 text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={gridValues[col]?.[rowIndex] ?? ""}
+                    onChange={(e) =>
+                      handleInputChange(col, rowIndex, e.target.value)
+                    }
+                  />
+                );
+              })
+            )}
+          </div>
 
-            <div className="flex justify-end gap-4">
-              <button
-                onClick={editChangedCartela}
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
-              >
-                Edit Changed
-              </button>
-              <button
-                onClick={() => deleteCartela(selectedCartela.id)}
-                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition"
-              >
-                Delete
-              </button>
-              <button
-                onClick={closeModal}
-                className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400 transition h-max"
-              >
-                Cancel
-              </button>
-            </div>
+          <div className="mt-4 flex gap-4">
+            <button
+              onClick={handleGenerateCard}
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
+            >
+              Generate Random Card
+            </button>
+            <button
+              onClick={addCardToFirebase}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+            >
+              Save Cartela
+            </button>
           </div>
         </div>
-      )}
+
+        {/* Saved Cards Section */}
+        <div className="shadow rounded-lg bg-white p-6">
+          <h2 className="text-2xl font-bold mb-4 text-gray-800">Saved Cards</h2>
+
+          <div className="flex flex-wrap gap-3">
+            {cartelas.length === 0 && (
+              <div className="text-gray-600 italic">No saved cartelas yet.</div>
+            )}
+            {cartelas.map(({ id }, index) => (
+              <button
+                key={id}
+                onClick={() => cartelas[index] && openModal(cartelas[index])}
+                className="bg-blue-200 hover:bg-blue-300 rounded px-4 py-2 text-lg font-semibold transition"
+                title={`Cartela #${index + 1}`}
+              >
+                {index + 1}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Modal for Viewing/Editing Cartela */}
+        {modalOpen && selectedCartela && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-lg max-w-xl w-full p-6 relative max-h-[90vh] overflow-auto">
+              <h3 className="text-xl font-bold mb-4 text-gray-800">
+                Edit Cartela #
+                {cartelas.findIndex((c) => c.id === selectedCartela.id) + 1}
+              </h3>
+
+              {/* Editable Grid in Modal */}
+              <div className="grid grid-cols-5 gap-2 text-center mb-4">
+                {columns.map((col) => (
+                  <div
+                    key={`header-${col}`}
+                    className="font-bold text-lg bg-blue-500 text-white rounded select-none p-2"
+                  >
+                    {col}
+                  </div>
+                ))}
+
+                {Array.from({ length: 5 }).map((_, rowIndex) =>
+                  columns.map((col) => {
+                    if (col === "N" && rowIndex === 2) {
+                      return (
+                        <div
+                          key={`free-modal-${col}-${rowIndex}`}
+                          className="p-2 border rounded bg-black text-white font-bold select-none"
+                        >
+                          FREE
+                        </div>
+                      );
+                    }
+                    return (
+                      <input
+                        key={`input-modal-${col}-${rowIndex}`}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={2}
+                        className="border rounded p-2 text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={selectedCartela.data[col]?.[rowIndex] ?? ""}
+                        onChange={(e) =>
+                          handleModalInputChange(col, rowIndex, e.target.value)
+                        }
+                      />
+                    );
+                  })
+                )}
+              </div>
+
+              <div className="flex justify-end gap-4">
+                <button
+                  onClick={editChangedCartela}
+                  className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
+                >
+                  Edit Changed
+                </button>
+                <button
+                  onClick={() => deleteCartela(selectedCartela.id)}
+                  className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition"
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={closeModal}
+                  className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400 transition h-max"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

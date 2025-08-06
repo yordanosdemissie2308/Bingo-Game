@@ -68,7 +68,7 @@ export default function Sidebar() {
         className={`ml-${isOpen ? "56" : "16"} flex items-center justify-center min-h-screen`}
         style={{ marginLeft: isOpen ? "14rem" : "4rem" }} // Tailwind w-56 = 14rem, w-16=4rem
       >
-        {/* <Dashboard bingoPageId={""} /> */}
+        <Dashboard bingoPageId={""} />
       </div>
     </>
   );
