@@ -52,6 +52,7 @@ export default function SelectCards() {
   const [bonusTypeIndex, setBonusTypeIndex] = useState(0);
   const [bonusAmount, setBonusAmount] = useState(0);
   const [betAmount, setBetAmount] = useState(10);
+  const [showPercent, setShowPercent] = useState(true);
 
   const [cartelas, setCartelas] = useState<Cartela[]>([]);
   const [selectedCartelaNumbers, setSelectedCartelaNumbers] = useState<
@@ -161,7 +162,7 @@ export default function SelectCards() {
       );
       return;
     }
-    if (points < 50) {
+    if (points < 1) {
       alert(isAmharic ? "በቂ ነጥብ የለዎትም።" : "Not enough points (need 50).");
       return;
     }
@@ -179,8 +180,8 @@ export default function SelectCards() {
         const userDoc = userSnapshot.docs[0];
         if (userDoc?.id) {
           const ref = doc(db, "users", userDoc.id);
-          await updateDoc(ref, { points: points - 50 });
-          setUserData({ points: points - 50 });
+          await updateDoc(ref, { points: points - 1 });
+          setUserData({ points: points - 1 });
         } else {
           alert("User document is invalid.");
           return;
@@ -300,18 +301,17 @@ export default function SelectCards() {
             </div>
 
             {/* Percentage Selector */}
-            <div className="flex flex-col">
-              <select
-                value={selectedPercent}
-                onChange={(e) => setSelectedPercent(Number(e.target.value))}
-                className="px-4 py-2 rounded-lg border border-gray-300 text-black bg-white shadow focus:outline-none focus:ring-2 focus:ring-blue-400"
+            <div className="flex items-center gap-3">
+              <span className="text-black font-bold text-lg select-none">
+                {isAmharic ? "መቶኛ" : "home"}
+              </span>
+              <div
+                onClick={() => setShowPercent(!showPercent)}
+                className="cursor-pointer px-4 py-2 bg-blue-100 text-blue-700 rounded-md shadow-sm hover:bg-blue-200 flex items-center gap-2 font-semibold"
               >
-                {percentageOptions.map((percent) => (
-                  <option key={percent} value={percent}>
-                    {percent}%
-                  </option>
-                ))}
-              </select>
+                {showPercent ? `${selectedPercent}%` : "****"}
+                {showPercent ? <Eye size={18} /> : <EyeOff size={18} />}
+              </div>
             </div>
           </div>
 
