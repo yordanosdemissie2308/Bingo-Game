@@ -9,8 +9,7 @@ import {
   where,
 } from "firebase/firestore";
 import { signInWithEmailAndPassword, getAuth } from "firebase/auth";
-import { db } from "./Firbase"; // your Firebase config file
-import { auth } from "./Firbase"; // make sure you export auth from Firebase config
+import { db, auth } from "./Firbase";
 
 interface GameSession {
   id: string;
@@ -20,6 +19,7 @@ interface GameSession {
   createdAt?: Date;
   totalAmount?: number;
   winAmount?: number;
+  percentage?: number; // user-chosen percentage
 }
 
 interface DailyReport {
@@ -44,7 +44,6 @@ export default function SalesPage() {
   );
   const [error, setError] = useState("");
 
-  // Handle Firebase login
   const handleLogin = async () => {
     try {
       const authInstance = getAuth();
@@ -54,7 +53,6 @@ export default function SalesPage() {
         password
       );
       const user = userCredential.user;
-
       setAuthenticatedUser(user.email || null);
       setError("");
     } catch (err: any) {
@@ -68,7 +66,6 @@ export default function SalesPage() {
 
     const fetchSessions = async () => {
       try {
-        // Fetch only sessions for the logged-in user
         const q = query(
           collection(db, "gameSessions"),
           where("userEmail", "==", authenticatedUser)
@@ -95,8 +92,10 @@ export default function SalesPage() {
             : [];
           const betAmount =
             typeof data.betAmount === "number" ? data.betAmount : 0;
-          const totalAmount = betAmount * selectedCartelas.length;
-          const winAmount = totalAmount * 0.9;
+          const percentage =
+            typeof data.percentage === "number" ? data.percentage : 100; // use user-chosen
+          const totalAmount = betAmount * (selectedCartelas.length || 0);
+          const winAmount = totalAmount * (percentage / 100); // calculate based on user percentage
 
           sessions.push({
             id: docSnap.id,
@@ -106,6 +105,7 @@ export default function SalesPage() {
             createdAt,
             totalAmount,
             winAmount,
+            percentage,
           });
         });
 
@@ -149,7 +149,6 @@ export default function SalesPage() {
         daily.sort(
           (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
         );
-
         setDailyReports(daily);
       } catch (error) {
         console.error("Failed to fetch game sessions", error);
@@ -159,7 +158,7 @@ export default function SalesPage() {
     fetchSessions();
   }, [authenticatedUser]);
 
-  // Show login screen until user logs in
+  // Login screen
   if (!authenticatedUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -243,6 +242,7 @@ export default function SalesPage() {
                   <th className="px-3 py-2 border">Bet (ብር)</th>
                   <th className="px-3 py-2 border"># Cards</th>
                   <th className="px-3 py-2 border">Total Bet (ብር)</th>
+                  <th className="px-3 py-2 border">Percentage</th>
                   <th className="px-3 py-2 border">Win (ብር)</th>
                 </tr>
               </thead>
@@ -252,16 +252,19 @@ export default function SalesPage() {
                     key={s.id}
                     className="text-center border-t hover:bg-gray-50"
                   >
-                    <td className="px-3 py-2 border">{s.userEmail}</td>
-                    <td className="px-3 py-2 border">{s.betAmount}</td>
+                    <td className="px-3 py-2 border">
+                      {s.userEmail ?? "unknown"}
+                    </td>
+                    <td className="px-3 py-2 border">{s.betAmount ?? 0}</td>
                     <td className="px-3 py-2 border">
                       {s.selectedCartelas?.length ?? 0}
                     </td>
                     <td className="px-3 py-2 border">
-                      {s.totalAmount?.toFixed(2)}
+                      {s.totalAmount?.toFixed(2) ?? "0.00"}
                     </td>
+                    <td className="px-3 py-2 border">{s.percentage ?? 100}%</td>
                     <td className="px-3 py-2 border text-green-600 font-semibold">
-                      {s.winAmount?.toFixed(2)}
+                      {s.winAmount?.toFixed(2) ?? "0.00"}
                     </td>
                   </tr>
                 ))}

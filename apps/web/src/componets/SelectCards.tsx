@@ -13,7 +13,6 @@ import {
 } from "firebase/firestore";
 import { db, auth } from "./Firbase";
 import { Eye, EyeOff } from "lucide-react";
-
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 import Sidebar from "./Sidebar";
 
@@ -35,6 +34,10 @@ const bonusOptions = [
   "6 CALL",
 ];
 
+const percentageOptions = [
+  20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100,
+];
+
 interface Cartela {
   id?: string;
   number?: number;
@@ -44,6 +47,8 @@ interface Cartela {
 
 export default function SelectCards() {
   const router = useRouter();
+  const [removeCardNumber, setRemoveCardNumber] = useState("");
+
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [userData, setUserData] = useState<{ points?: number }>({});
   const [language, setLanguage] = useState<"English" | "Amharic">("English");
@@ -52,30 +57,54 @@ export default function SelectCards() {
   const [gameType, setGameType] = useState(gameTypes[0]);
   const [bonusTypeIndex, setBonusTypeIndex] = useState(0);
   const [bonusAmount, setBonusAmount] = useState(0);
-  const [betAmount, setBetAmount] = useState(10);
-  const [showPercent, setShowPercent] = useState(true);
+
+  // 👇 Bet amount now initializes from localStorage (no flicker, no race)
+  const [betAmount, setBetAmount] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("betAmount");
+      const n = saved ? Number(saved) : 10;
+      if (Number.isFinite(n)) {
+        return Math.min(50, Math.max(10, Math.round(n / 10) * 10)); // clamp & snap to step 10
+      }
+    }
+    return 10;
+  });
+  useEffect(() => {
+    localStorage.setItem("betAmount", String(betAmount));
+  }, [betAmount]);
+
+  // 👇 Toggle to hide/show the BET amount (like Win/Percent)
+  const [showBet, setShowBet] = useState(true);
 
   const [cartelas, setCartelas] = useState<Cartela[]>([]);
   const [selectedCartelaNumbers, setSelectedCartelaNumbers] = useState<
     number[]
   >([]);
+  const [remindSelection, setRemindSelection] = useState(false);
 
   const [searchNumber, setSearchNumber] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedPercent, setSelectedPercent] = useState(100);
-  const [show, setShow] = useState(true);
+
+  const [selectedPercent, setSelectedPercent] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("selectedPercent");
+      const n = saved ? Number(saved) : 100;
+      return percentageOptions.includes(n as any) ? n : 100;
+    }
+    return 100;
+  });
+  const [showPercent, setShowPercent] = useState(true);
+
+  const [show, setShow] = useState(true); // Win amount hide/show
 
   const [showEnterCardModal, setShowEnterCardModal] = useState(false);
   const [enteredCardNumber, setEnteredCardNumber] = useState("");
+  const [removecard, setRemoveCard] = useState("false");
   const [enterCardError, setEnterCardError] = useState("");
 
   const isAmharic = language === "Amharic";
   const points = userData.points ?? 0;
-
-  const percentageOptions = [
-    20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100,
-  ];
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -220,8 +249,17 @@ export default function SelectCards() {
     }
   };
 
-  const incrementBet = () => setBetAmount((v) => Math.min(v + 10, 50));
-  const decrementBet = () => setBetAmount((v) => Math.max(v - 10, 10));
+  // Persist percentage choice
+  useEffect(() => {
+    localStorage.setItem("selectedPercent", String(selectedPercent));
+  }, [selectedPercent]);
+
+  const handlePercentChange = (value: number) => {
+    setSelectedPercent(value);
+  };
+
+  const incrementBet = () => setBetAmount((v) => Math.min(50, v + 10));
+  const decrementBet = () => setBetAmount((v) => Math.max(10, v - 10));
 
   const winAmount =
     (betAmount * selectedCartelaNumbers.length * selectedPercent) / 100;
@@ -244,10 +282,9 @@ export default function SelectCards() {
               <h2 className="text-2xl font-semibold mb-4 text-gray-800">
                 🎯 Selected Cartelas
               </h2>
-
               <div className="flex flex-wrap justify-center gap-4 px-6">
                 {selectedCartelaNumbers
-                  .slice(selectedCartelaNumbers.length > 5 ? 5 : 0) // hide first 5 if more than 5
+                  .slice(selectedCartelaNumbers.length > 5 ? 5 : 0)
                   .map((cardNum) => (
                     <div
                       key={cardNum}
@@ -257,7 +294,6 @@ export default function SelectCards() {
                     </div>
                   ))}
               </div>
-
               {selectedCartelaNumbers.length > 5 && (
                 <p className="mt-4 text-sm text-gray-500 italic">
                   (Showing latest {selectedCartelaNumbers.length - 5} cards)
@@ -275,11 +311,27 @@ export default function SelectCards() {
               {isAmharic ? "ነጥብዎ፡" : "Your Points:"} {points}
             </p>
 
+            <div className="mb-4 flex items-center gap-2">
+              <input
+                id="remindToggle"
+                type="checkbox"
+                checked={remindSelection}
+                onChange={() => setRemindSelection(!remindSelection)}
+                className="cursor-pointer"
+              />
+              <label
+                htmlFor="remindToggle"
+                className="select-none cursor-pointer"
+              >
+                {isAmharic ? "ምልክት አሳይ" : "Remind Me Selection"}
+              </label>
+            </div>
+
             {/* Bet, Win, Percentage in same row */}
             <div className="flex justify-between items-start w-full mb-6">
               <div className="flex items-center gap-10">
-                {/* Bet Amount */}
-                <div className="flex gap-2 items-center min-w-[180px]">
+                {/* Bet Amount (now with Eye/EyeOff) */}
+                <div className="flex gap-2 items-center min-w-[220px]">
                   <span className="text-black font-bold text-lg select-none">
                     {isAmharic ? "የትርፍ መጠን" : "Bet Amount"}
                   </span>
@@ -292,9 +344,16 @@ export default function SelectCards() {
                       -
                     </button>
                     <div className="p-[2px] rounded-2xl">
-                      <div className="bg-blue-200 px-6 py-2 text-black font-bold rounded-sm min-w-[100px] text-center relative overflow-hidden">
+                      <div className="relative bg-blue-200 px-6 py-2 text-black font-bold rounded-sm min-w-[120px] text-center overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-1/2 bg-white opacity-10 rounded-t-sm pointer-events-none" />
-                        {betAmount} birr
+                        {showBet ? `${betAmount} birr` : "****"}
+                        <button
+                          onClick={() => setShowBet((s) => !s)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-white/40"
+                          aria-label="Toggle bet visibility"
+                        >
+                          {showBet ? <Eye size={18} /> : <EyeOff size={18} />}
+                        </button>
                       </div>
                     </div>
                     <button
@@ -321,21 +380,16 @@ export default function SelectCards() {
                   </div>
                 </div>
 
-                {/* Percentage Selector */}
                 {/* Percentage Selector with Eye/EyeOff Toggle */}
-
-                <div className="flex  gap-1">
-                  {/* Label */}
+                <div className="flex gap-1 items-center">
                   <span className="text-black font-bold text-lg select-none">
-                    {isAmharic ? "መቶኛ" : "home"}
+                    {isAmharic ? "መቶኛ" : "Percentage"}
                   </span>
-
-                  {/* Dropdown with icon, centered like your Win Amount */}
                   <div className="relative w-40">
                     <select
                       value={selectedPercent}
                       onChange={(e) =>
-                        setSelectedPercent(Number(e.target.value))
+                        handlePercentChange(Number(e.target.value))
                       }
                       className="w-full px-4 py-2 pr-12 rounded-lg border border-gray-300 text-black bg-white shadow focus:outline-none focus:ring-2 focus:ring-blue-400"
                     >
@@ -345,8 +399,6 @@ export default function SelectCards() {
                         </option>
                       ))}
                     </select>
-
-                    {/* Icon centered vertically inside select box */}
                     <div
                       onClick={() => setShowPercent(!showPercent)}
                       className="absolute inset-y-0 right-3 flex items-center text-blue-700 cursor-pointer"
@@ -363,6 +415,7 @@ export default function SelectCards() {
                   onClick={() => {
                     setEnteredCardNumber("");
                     setEnterCardError("");
+                    setRemoveCard("false");
                     setShowEnterCardModal(true);
                   }}
                   className="bg-gradient-to-br from-orange-400 to-orange-600 text-white font-extrabold px-6 py-3 rounded-md shadow-lg text-lg transition hover:scale-105 active:scale-95"
@@ -373,7 +426,7 @@ export default function SelectCards() {
                   onClick={handlePlayClick}
                   disabled={!selectedCartelaNumbers.length}
                   className="bg-gradient-to-br from-orange-400 to-orange-600 text-white font-extrabold px-10 py-4 rounded-md shadow-lg text-xl 
-        transition hover:scale-105 hover:brightness-110 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+                  transition hover:scale-105 hover:brightness-110 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {isAmharic ? "ጀምር" : "Play"}
                 </button>
@@ -411,30 +464,52 @@ export default function SelectCards() {
             )}
 
             {showEnterCardModal && (
-              <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-60">
-                <div className="bg-white rounded-lg p-6 w-full max-w-sm shadow-xl">
-                  <h2 className="text-xl font-bold mb-4 text-black">
-                    {isAmharic ? "ካርድ ቁጥር ያስገቡ" : "Enter Card Number"}
+              <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+                <div className="absolute inset-0 bg-white bg-opacity-20 backdrop-blur-sm pointer-events-auto" />
+                <div className="relative bg-white rounded-lg shadow-lg p-6 w-96 pointer-events-auto z-10">
+                  <h2 className="text-lg font-bold mb-4">
+                    {isAmharic ? "ካርድ አስገባ / አስወግድ" : "Add / Remove Card"}
                   </h2>
+
                   <input
                     type="number"
                     value={enteredCardNumber}
                     onChange={(e) => setEnteredCardNumber(e.target.value)}
-                    placeholder={isAmharic ? "ካርድ ቁጥር..." : "Card number..."}
-                    className="w-full border border-gray-300 rounded-md px-4 py-2 mb-4 text-black"
+                    placeholder={
+                      isAmharic ? "የካርድ ቁጥር ያስገቡ" : "Enter card number to add"
+                    }
+                    className="border p-2 w-full mb-3 rounded"
                   />
+
+                  <input
+                    type="number"
+                    value={removeCardNumber}
+                    onChange={(e) => setRemoveCardNumber(e.target.value)}
+                    placeholder={
+                      isAmharic
+                        ? "ለማስወገድ የካርድ ቁጥር ያስገቡ"
+                        : "Enter card number to remove"
+                    }
+                    className="border p-2 w-full mb-4 rounded"
+                  />
+
                   {enterCardError && (
-                    <p className="text-red-500 text-sm mb-2">
-                      {enterCardError}
-                    </p>
+                    <p className="text-red-500 mb-3">{enterCardError}</p>
                   )}
+
                   <div className="flex justify-end gap-4">
                     <button
-                      onClick={() => setShowEnterCardModal(false)}
+                      onClick={() => {
+                        setShowEnterCardModal(false);
+                        setEnteredCardNumber("");
+                        setRemoveCardNumber("");
+                        setEnterCardError("");
+                      }}
                       className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded"
                     >
                       {isAmharic ? "ይቅር" : "Cancel"}
                     </button>
+
                     <button
                       onClick={() => {
                         const cardNumber = parseInt(enteredCardNumber);
@@ -458,7 +533,6 @@ export default function SelectCards() {
                             ? prev
                             : [...prev, cardNumber]
                         );
-                        setShowEnterCardModal(false);
                         setEnteredCardNumber("");
                         setEnterCardError("");
                       }}
@@ -466,11 +540,38 @@ export default function SelectCards() {
                     >
                       {isAmharic ? "አስገባ" : "Add"}
                     </button>
+
+                    <button
+                      onClick={() => {
+                        const cardNumber = parseInt(removeCardNumber);
+                        if (isNaN(cardNumber)) {
+                          setEnterCardError(
+                            isAmharic ? "የተሳሳተ ቁጥር ነው።" : "Invalid card number."
+                          );
+                          return;
+                        }
+                        if (!selectedCartelaNumbers.includes(cardNumber)) {
+                          setEnterCardError(
+                            isAmharic ? "ካርድ አልተመረጠም።" : "Card is not selected."
+                          );
+                          return;
+                        }
+                        setSelectedCartelaNumbers((prev) =>
+                          prev.filter((n) => n !== cardNumber)
+                        );
+                        setRemoveCardNumber("");
+                        setEnterCardError("");
+                      }}
+                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+                    >
+                      {isAmharic ? "አስወግድ" : "Remove"}
+                    </button>
                   </div>
                 </div>
               </div>
             )}
           </div>
+
           <div className="flex justify-center items-center shadow-2xl rounded-3xl gap-4 p-6 self-end">
             selected cards number:
             <p>{selectedCartelaNumbers.length}</p>
