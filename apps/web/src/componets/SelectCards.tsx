@@ -1,5 +1,4 @@
 "use client";
-
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
@@ -17,22 +16,6 @@ import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 import Sidebar from "./Sidebar";
 
 const gameTypes = ["Person", "Heart", "H", "T", "P"];
-
-const bonusOptions = [
-  "5 CALL",
-  "OnlyCorner",
-  "OnlyPlus",
-  "L",
-  "T",
-  "X",
-  "24 CALL",
-  "19 CALL",
-  "10 CALL",
-  "9 CALL",
-  "8 CALL",
-  "7 CALL",
-  "6 CALL",
-];
 
 const percentageOptions = [
   20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100,
@@ -58,16 +41,16 @@ export default function SelectCards() {
   const [bonusTypeIndex, setBonusTypeIndex] = useState(0);
   const [bonusAmount, setBonusAmount] = useState(0);
 
-  // 👇 Bet amount now initializes from localStorage (no flicker, no race)
+  // 👇 Bet amount now initiAalizes from localStorage (no flicker, no race)
   const [betAmount, setBetAmount] = useState<number>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("betAmount");
       const n = saved ? Number(saved) : 10;
       if (Number.isFinite(n)) {
-        return Math.min(50, Math.max(10, Math.round(n / 10) * 10)); // clamp & snap to step 10
+        return Math.min(1000, Math.max(5, Math.round(n / 5) * 5)); // clamp & snap to step 10
       }
     }
-    return 10;
+    return 5;
   });
   useEffect(() => {
     localStorage.setItem("betAmount", String(betAmount));
@@ -236,10 +219,11 @@ export default function SelectCards() {
         selectedCartelas: selectedCartelaNumbers,
         betAmount,
         bonusAmount,
-        bonusType: bonusOptions[bonusTypeIndex],
         gameType,
         speed,
         createdAt: new Date(),
+
+        percentage: selectedPercent,
       });
 
       router.push(`/web/play-bingo`);
@@ -258,8 +242,8 @@ export default function SelectCards() {
     setSelectedPercent(value);
   };
 
-  const incrementBet = () => setBetAmount((v) => Math.min(50, v + 10));
-  const decrementBet = () => setBetAmount((v) => Math.max(10, v - 10));
+  const incrementBet = () => setBetAmount((v) => Math.min(1000, v + 5));
+  const decrementBet = () => setBetAmount((v) => Math.max(5, v - 5));
 
   const winAmount =
     (betAmount * selectedCartelaNumbers.length * selectedPercent) / 100;
@@ -336,13 +320,16 @@ export default function SelectCards() {
                     {isAmharic ? "የትርፍ መጠን" : "Bet Amount"}
                   </span>
                   <div className="flex items-center">
+                    {/* Decrement Bet */}
                     <button
                       onClick={decrementBet}
-                      disabled={betAmount <= 10}
+                      disabled={betAmount <= 5}
                       className="w-10 h-10 border-black rounded-md shadow-md text-red-700 text-2xl"
                     >
                       -
                     </button>
+
+                    {/* Bet Amount Display */}
                     <div className="p-[2px] rounded-2xl">
                       <div className="relative bg-blue-200 px-6 py-2 text-black font-bold rounded-sm min-w-[120px] text-center overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-1/2 bg-white opacity-10 rounded-t-sm pointer-events-none" />
@@ -356,10 +343,12 @@ export default function SelectCards() {
                         </button>
                       </div>
                     </div>
+
+                    {/* Increment Bet */}
                     <button
                       onClick={incrementBet}
-                      disabled={betAmount >= 50}
-                      className="w-10 h-10 border-black rounded-md shadow-md text-black text-2xl"
+                      disabled={betAmount >= 1000}
+                      className="w-10 h-10 border-black rounded-md shadow-md text-green-700 text-2xl"
                     >
                       +
                     </button>

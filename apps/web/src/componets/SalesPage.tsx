@@ -20,6 +20,7 @@ interface GameSession {
   totalAmount?: number;
   winAmount?: number;
   percentage?: number; // user-chosen percentage
+  jackpotAmount?: number;
 }
 
 interface DailyReport {
@@ -28,6 +29,7 @@ interface DailyReport {
   totalSales: number;
   totalWin: number;
   winPercent: number;
+  totalJackpot?: number;
   sessions: GameSession[];
 }
 
@@ -93,9 +95,15 @@ export default function SalesPage() {
           const betAmount =
             typeof data.betAmount === "number" ? data.betAmount : 0;
           const percentage =
-            typeof data.percentage === "number" ? data.percentage : 100; // use user-chosen
+            typeof data.percentage === "number" ? data.percentage : 100; // user percentage
+
           const totalAmount = betAmount * (selectedCartelas.length || 0);
-          const winAmount = totalAmount * (percentage / 100); // calculate based on user percentage
+          const winAmount = totalAmount * (percentage / 100);
+
+          // Calculate jackpot: betAmount * #cartelas * (100 - percentage) / 100
+          const jackpotAmount =
+            (betAmount * (selectedCartelas.length || 0) * (100 - percentage)) /
+            100;
 
           sessions.push({
             id: docSnap.id,
@@ -106,6 +114,7 @@ export default function SalesPage() {
             totalAmount,
             winAmount,
             percentage,
+            jackpotAmount,
           });
         });
 
@@ -117,6 +126,7 @@ export default function SalesPage() {
             sales: number;
             win: number;
             sessions: GameSession[];
+            jackpot: number;
           }
         > = {};
 
@@ -126,12 +136,19 @@ export default function SalesPage() {
           const playerCount = s.selectedCartelas?.length || 0;
 
           if (!reports[dateKey]) {
-            reports[dateKey] = { players: 0, sales: 0, win: 0, sessions: [] };
+            reports[dateKey] = {
+              players: 0,
+              sales: 0,
+              win: 0,
+              sessions: [],
+              jackpot: 0,
+            };
           }
 
           reports[dateKey].players += playerCount;
           reports[dateKey].sales += s.totalAmount ?? 0;
           reports[dateKey].win += s.winAmount ?? 0;
+          reports[dateKey].jackpot += s.jackpotAmount ?? 0;
           reports[dateKey].sessions.push(s);
         });
 
@@ -142,6 +159,7 @@ export default function SalesPage() {
             totalSales: data.sales,
             totalWin: data.win,
             winPercent: data.sales > 0 ? (data.win / data.sales) * 100 : 0,
+            totalJackpot: data.jackpot,
             sessions: data.sessions,
           })
         );
@@ -214,6 +232,9 @@ export default function SalesPage() {
             <p className="text-green-600 font-semibold">
               Win Amount: {report.totalWin.toFixed(2)} ብር
             </p>
+            <p className="text-yellow-700 font-semibold">
+              Total Jackpot: {report.totalJackpot?.toFixed(2)} ብር
+            </p>
             <p className="text-gray-500">
               Win Rate: {report.winPercent.toFixed(1)}%
             </p>
@@ -241,9 +262,10 @@ export default function SalesPage() {
                   <th className="px-3 py-2 border">Player</th>
                   <th className="px-3 py-2 border">Bet (ብር)</th>
                   <th className="px-3 py-2 border"># Cards</th>
-                  <th className="px-3 py-2 border">Total Bet (ብር)</th>
                   <th className="px-3 py-2 border">Percentage</th>
                   <th className="px-3 py-2 border">Win (ብር)</th>
+                  <th className="px-3 py-2 border">Jackpot (ብር)</th>
+                  <th className="px-3 py-2 border">House profit</th>
                 </tr>
               </thead>
               <tbody>
@@ -259,12 +281,13 @@ export default function SalesPage() {
                     <td className="px-3 py-2 border">
                       {s.selectedCartelas?.length ?? 0}
                     </td>
-                    <td className="px-3 py-2 border">
-                      {s.totalAmount?.toFixed(2) ?? "0.00"}
-                    </td>
+
                     <td className="px-3 py-2 border">{s.percentage ?? 100}%</td>
                     <td className="px-3 py-2 border text-green-600 font-semibold">
                       {s.winAmount?.toFixed(2) ?? "0.00"}
+                    </td>
+                    <td className="px-3 py-2 border text-yellow-700 font-semibold">
+                      {s.jackpotAmount?.toFixed(2) ?? "0.00"}
                     </td>
                   </tr>
                 ))}
