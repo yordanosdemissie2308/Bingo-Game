@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, orderBy } from "firebase/firestore";
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 import Calendar from "./Calendar";
 import { auth, db } from "./Firbase";
@@ -13,20 +13,17 @@ interface DashboardProps {
   bingoPageId: string;
 }
 
-interface SessionBonus {
-  bonusAmount: number;
-  createdAt: string;
-  bonusType?: string;
-}
-
 export default function Dashboard({ bingoPageId }: DashboardProps) {
   const [points, setPoints] = useState(0);
   const [playCount, setPlayCount] = useState(0);
   const [bonusAmountTotal, setBonusAmountTotal] = useState(0);
+  const [jackpotTotal, setJackpotTotal] = useState(0);
+
   const [showPoints, setShowPoints] = useState(true);
   const [showGamesPlayed, setShowGamesPlayed] = useState(true);
   const [showBonus, setShowBonus] = useState(true);
   const [showRevenue, setShowRevenue] = useState(true);
+  const [showJackpot, setShowJackpot] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,48 +35,54 @@ export default function Dashboard({ bingoPageId }: DashboardProps) {
           return;
         }
 
-        const usersRef = collection(db, "users");
-        const userSnap = await getDocs(
-          query(usersRef, where("email", "==", user.email))
-        );
-        if (!userSnap.empty) {
-          const data = userSnap.docs[0]?.data();
-          setPoints(data?.points ?? 0);
-        }
-
-        const gamesRef = collection(db, "gameSessions");
-        const sessionQuery = query(
-          gamesRef,
-          where("userEmail", "==", user.email),
-          where("bingoPageId", "==", bingoPageId),
-          orderBy("createdAt", "asc")
-        );
-
-        let snap;
         try {
-          snap = await getDocs(sessionQuery);
-        } catch {
-          snap = await getDocs(
-            query(gamesRef, where("userEmail", "==", user.email))
+          // Get user points
+          const usersRef = collection(db, "users");
+          const userSnap = await getDocs(usersRef);
+          const currentUser = userSnap.docs.find(
+            (doc) => doc.data().email === user.email
           );
+          if (currentUser) {
+            setPoints(currentUser.data()?.points ?? 0);
+          }
+
+          // Get all game sessions
+          const gamesRef = collection(db, "gameSessions");
+          const userQuery = query(gamesRef, orderBy("createdAt", "asc"));
+          const snap = await getDocs(userQuery);
+
+          let totalBonus = 0;
+          let totalJackpotCalc = 0;
+          let userPlays = 0;
+
+          snap.docs.forEach((doc) => {
+            const data = doc.data();
+
+            // Sum all jackpots globally
+            totalJackpotCalc += data.jackpotAmount || 0;
+
+            // Count games played and bonus for this user
+            if (data.userEmail === user.email) {
+              userPlays += 1;
+              totalBonus += data.bonusAmount || 0;
+            }
+          });
+
+          setPlayCount(userPlays);
+          setBonusAmountTotal(totalBonus);
+          setJackpotTotal(totalJackpotCalc);
+        } catch (err) {
+          console.error("Error fetching dashboard data:", err);
+        } finally {
+          setLoading(false);
         }
-
-        let totalBonusAmount = 0;
-        snap.docs.forEach((doc) => {
-          const data = doc.data();
-          totalBonusAmount += data.bonusAmount || 0;
-        });
-
-        setPlayCount(snap.docs.length);
-        setBonusAmountTotal(totalBonusAmount);
-        setLoading(false);
       }
     );
 
     return () => unsub();
   }, [bingoPageId]);
 
-  const revenue = bonusAmountTotal + playCount * 50;
+  const revenue = jackpotTotal; // Total Revenue = Jackpot only
 
   if (loading) {
     return (
@@ -104,7 +107,6 @@ export default function Dashboard({ bingoPageId }: DashboardProps) {
 
           {/* Info Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {/* Points */}
             <Card
               title="Points"
               value={
@@ -115,30 +117,29 @@ export default function Dashboard({ bingoPageId }: DashboardProps) {
               onToggle={() => setShowPoints(!showPoints)}
               show={showPoints}
             />
-
-            {/* Games Played */}
             <Card
               title="Games Played"
               value={showGamesPlayed ? playCount.toString() : "••••"}
               onToggle={() => setShowGamesPlayed(!showGamesPlayed)}
               show={showGamesPlayed}
             />
-
-            {/* Bonus */}
             <Card
               title="Bonus Earned"
               value={showBonus ? `${bonusAmountTotal} birr` : "••••"}
               onToggle={() => setShowBonus(!showBonus)}
               show={showBonus}
             />
-
-            {/* Revenue */}
             <Card
               title="Total Revenue"
               value={showRevenue ? `${revenue} birr` : "••••"}
               onToggle={() => setShowRevenue(!showRevenue)}
               show={showRevenue}
-              className="sm:col-span-2 md:col-span-1"
+            />
+            <Card
+              title="Global Jackpot"
+              value={showJackpot ? `${jackpotTotal} birr` : "••••"}
+              onToggle={() => setShowJackpot(!showJackpot)}
+              show={showJackpot}
             />
           </div>
 

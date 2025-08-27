@@ -9,7 +9,7 @@ import {
   where,
 } from "firebase/firestore";
 import { signInWithEmailAndPassword, getAuth } from "firebase/auth";
-import { db, auth } from "./Firbase";
+import { db } from "./Firbase";
 
 interface GameSession {
   id: string;
@@ -19,7 +19,7 @@ interface GameSession {
   createdAt?: Date;
   totalAmount?: number;
   winAmount?: number;
-  percentage?: number; // user-chosen percentage
+  percentage?: number;
   jackpotAmount?: number;
 }
 
@@ -38,16 +38,32 @@ export default function SalesPage() {
   const [selectedReport, setSelectedReport] = useState<DailyReport | null>(
     null
   );
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authenticatedUser, setAuthenticatedUser] = useState<string | null>(
     null
   );
   const [error, setError] = useState("");
+  const [isOnline, setIsOnline] = useState(true);
+
+  // 🔌 track online/offline state
+  useEffect(() => {
+    const updateOnlineStatus = () => setIsOnline(navigator.onLine);
+    window.addEventListener("online", updateOnlineStatus);
+    window.addEventListener("offline", updateOnlineStatus);
+    updateOnlineStatus();
+    return () => {
+      window.removeEventListener("online", updateOnlineStatus);
+      window.removeEventListener("offline", updateOnlineStatus);
+    };
+  }, []);
 
   const handleLogin = async () => {
     try {
+      if (!isOnline) {
+        setError("No internet connection. Please reconnect.");
+        return;
+      }
       const authInstance = getAuth();
       const userCredential = await signInWithEmailAndPassword(
         authInstance,
@@ -63,124 +79,132 @@ export default function SalesPage() {
     }
   };
 
-  useEffect(() => {
-    if (!authenticatedUser) return;
+  const fetchSessions = async () => {
+    if (!authenticatedUser || !isOnline) return;
 
-    const fetchSessions = async () => {
-      try {
-        const q = query(
-          collection(db, "gameSessions"),
-          where("userEmail", "==", authenticatedUser)
-        );
-        const snapshot = await getDocs(q);
-        const sessions: GameSession[] = [];
+    try {
+      const q = query(
+        collection(db, "gameSessions"),
+        where("userEmail", "==", authenticatedUser)
+      );
+      const snapshot = await getDocs(q);
+      const sessions: GameSession[] = [];
 
-        snapshot.docs.forEach((docSnap) => {
-          const data = docSnap.data();
+      snapshot.docs.forEach((docSnap) => {
+        const data = docSnap.data();
 
-          let createdAt: Date | undefined;
-          if (data.createdAt) {
-            if (data.createdAt instanceof Timestamp) {
-              createdAt = data.createdAt.toDate();
-            } else if (data.createdAt.seconds) {
-              createdAt = new Date(data.createdAt.seconds * 1000);
-            } else {
-              createdAt = new Date(data.createdAt);
-            }
+        let createdAt: Date | undefined;
+        if (data.createdAt) {
+          if (data.createdAt instanceof Timestamp) {
+            createdAt = data.createdAt.toDate();
+          } else if (data.createdAt.seconds) {
+            createdAt = new Date(data.createdAt.seconds * 1000);
+          } else {
+            createdAt = new Date(data.createdAt);
           }
+        }
 
-          const selectedCartelas = Array.isArray(data.selectedCartelas)
-            ? data.selectedCartelas
-            : [];
-          const betAmount =
-            typeof data.betAmount === "number" ? data.betAmount : 0;
-          const percentage =
-            typeof data.percentage === "number" ? data.percentage : 100; // user percentage
+        const selectedCartelas = Array.isArray(data.selectedCartelas)
+          ? data.selectedCartelas
+          : [];
+        const betAmount =
+          typeof data.betAmount === "number" ? data.betAmount : 0;
+        const percentage =
+          typeof data.percentage === "number" ? data.percentage : 100;
 
-          const totalAmount = betAmount * (selectedCartelas.length || 0);
-          const winAmount = totalAmount * (percentage / 100);
+        const totalAmount = betAmount * (selectedCartelas.length || 0);
+        const winAmount = totalAmount * (percentage / 100);
+        const jackpotAmount =
+          (betAmount * (selectedCartelas.length || 0) * (100 - percentage)) /
+          100;
 
-          // Calculate jackpot: betAmount * #cartelas * (100 - percentage) / 100
-          const jackpotAmount =
-            (betAmount * (selectedCartelas.length || 0) * (100 - percentage)) /
-            100;
-
-          sessions.push({
-            id: docSnap.id,
-            userEmail: data.userEmail ?? "unknown",
-            betAmount,
-            selectedCartelas,
-            createdAt,
-            totalAmount,
-            winAmount,
-            percentage,
-            jackpotAmount,
-          });
+        sessions.push({
+          id: docSnap.id,
+          userEmail: data.userEmail ?? "unknown",
+          betAmount,
+          selectedCartelas,
+          createdAt,
+          totalAmount,
+          winAmount,
+          percentage,
+          jackpotAmount,
         });
+      });
 
-        // Group sessions by date
-        const reports: Record<
-          string,
-          {
-            players: number;
-            sales: number;
-            win: number;
-            sessions: GameSession[];
-            jackpot: number;
-          }
-        > = {};
+      const reports: Record<
+        string,
+        {
+          players: number;
+          sales: number;
+          win: number;
+          sessions: GameSession[];
+          jackpot: number;
+        }
+      > = {};
 
-        sessions.forEach((s) => {
-          if (!s.createdAt) return;
-          const dateKey = s.createdAt.toLocaleDateString();
-          const playerCount = s.selectedCartelas?.length || 0;
+      sessions.forEach((s) => {
+        if (!s.createdAt) return;
+        const dateKey = s.createdAt.toLocaleDateString();
+        const playerCount = s.selectedCartelas?.length || 0;
 
-          if (!reports[dateKey]) {
-            reports[dateKey] = {
-              players: 0,
-              sales: 0,
-              win: 0,
-              sessions: [],
-              jackpot: 0,
-            };
-          }
+        if (!reports[dateKey]) {
+          reports[dateKey] = {
+            players: 0,
+            sales: 0,
+            win: 0,
+            sessions: [],
+            jackpot: 0,
+          };
+        }
 
-          reports[dateKey].players += playerCount;
-          reports[dateKey].sales += s.totalAmount ?? 0;
-          reports[dateKey].win += s.winAmount ?? 0;
-          reports[dateKey].jackpot += s.jackpotAmount ?? 0;
-          reports[dateKey].sessions.push(s);
-        });
+        reports[dateKey].players += playerCount;
+        reports[dateKey].sales += s.totalAmount ?? 0;
+        reports[dateKey].win += s.winAmount ?? 0;
+        reports[dateKey].jackpot += s.jackpotAmount ?? 0;
+        reports[dateKey].sessions.push(s);
+      });
 
-        const daily: DailyReport[] = Object.entries(reports).map(
-          ([date, data]) => ({
-            date,
-            players: data.players,
-            totalSales: data.sales,
-            totalWin: data.win,
-            winPercent: data.sales > 0 ? (data.win / data.sales) * 100 : 0,
-            totalJackpot: data.jackpot,
-            sessions: data.sessions,
-          })
-        );
+      const daily: DailyReport[] = Object.entries(reports).map(
+        ([date, data]) => ({
+          date,
+          players: data.players,
+          totalSales: data.sales,
+          totalWin: data.win,
+          winPercent: data.sales > 0 ? (data.win / data.sales) * 100 : 0,
+          totalJackpot: data.jackpot,
+          sessions: data.sessions,
+        })
+      );
 
-        daily.sort(
-          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
-        setDailyReports(daily);
-      } catch (error) {
-        console.error("Failed to fetch game sessions", error);
+      daily.sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+      setDailyReports(daily);
+    } catch (err: any) {
+      console.error("Failed to fetch game sessions", err);
+      if (!navigator.onLine) {
+        setError("You are offline. Please check your internet.");
+      } else {
+        setError("Failed to load sessions. Try again later.");
       }
-    };
+    }
+  };
 
+  // auto-fetch when logged in OR internet comes back
+  useEffect(() => {
     fetchSessions();
-  }, [authenticatedUser]);
+  }, [authenticatedUser, isOnline]);
 
   // Login screen
   if (!authenticatedUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-sm">
+          {!isOnline && (
+            <div className="bg-red-500 text-white text-center py-2 mb-3 rounded">
+              ⚠️ No internet connection
+            </div>
+          )}
           <h2 className="text-2xl font-bold mb-4 text-center">User Login</h2>
           {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
           <input
@@ -199,7 +223,12 @@ export default function SalesPage() {
           />
           <button
             onClick={handleLogin}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg"
+            disabled={!isOnline}
+            className={`w-full py-2 rounded-lg ${
+              isOnline
+                ? "bg-blue-600 hover:bg-blue-700 text-white"
+                : "bg-gray-400 text-gray-200 cursor-not-allowed"
+            }`}
           >
             Login
           </button>
@@ -210,6 +239,13 @@ export default function SalesPage() {
 
   return (
     <div className="p-6 bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen">
+      {/* ⚡ show offline banner */}
+      {!isOnline && (
+        <div className="bg-red-500 text-white text-center py-2 mb-4 rounded">
+          ⚠️ You are offline. Data may not be up to date.
+        </div>
+      )}
+
       <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">
         📊 {authenticatedUser}’s Game Activity
       </h1>
@@ -265,7 +301,6 @@ export default function SalesPage() {
                   <th className="px-3 py-2 border">Percentage</th>
                   <th className="px-3 py-2 border">Win (ብር)</th>
                   <th className="px-3 py-2 border">Jackpot (ብር)</th>
-                  <th className="px-3 py-2 border">House profit</th>
                 </tr>
               </thead>
               <tbody>
@@ -281,7 +316,6 @@ export default function SalesPage() {
                     <td className="px-3 py-2 border">
                       {s.selectedCartelas?.length ?? 0}
                     </td>
-
                     <td className="px-3 py-2 border">{s.percentage ?? 100}%</td>
                     <td className="px-3 py-2 border text-green-600 font-semibold">
                       {s.winAmount?.toFixed(2) ?? "0.00"}

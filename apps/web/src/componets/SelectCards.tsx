@@ -41,13 +41,12 @@ export default function SelectCards() {
   const [bonusTypeIndex, setBonusTypeIndex] = useState(0);
   const [bonusAmount, setBonusAmount] = useState(0);
 
-  // 👇 Bet amount now initiAalizes from localStorage (no flicker, no race)
   const [betAmount, setBetAmount] = useState<number>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("betAmount");
       const n = saved ? Number(saved) : 10;
       if (Number.isFinite(n)) {
-        return Math.min(1000, Math.max(5, Math.round(n / 5) * 5)); // clamp & snap to step 10
+        return Math.min(1000, Math.max(5, Math.round(n / 5) * 5));
       }
     }
     return 5;
@@ -56,7 +55,6 @@ export default function SelectCards() {
     localStorage.setItem("betAmount", String(betAmount));
   }, [betAmount]);
 
-  // 👇 Toggle to hide/show the BET amount (like Win/Percent)
   const [showBet, setShowBet] = useState(true);
 
   const [cartelas, setCartelas] = useState<Cartela[]>([]);
@@ -78,8 +76,7 @@ export default function SelectCards() {
     return 100;
   });
   const [showPercent, setShowPercent] = useState(true);
-
-  const [show, setShow] = useState(true); // Win amount hide/show
+  const [show, setShow] = useState(true);
 
   const [showEnterCardModal, setShowEnterCardModal] = useState(false);
   const [enteredCardNumber, setEnteredCardNumber] = useState("");
@@ -89,6 +86,7 @@ export default function SelectCards() {
   const isAmharic = language === "Amharic";
   const points = userData.points ?? 0;
 
+  // ✅ Auth Listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser?.email) {
@@ -118,6 +116,7 @@ export default function SelectCards() {
     return () => unsubscribe();
   }, []);
 
+  // ✅ Fetch Cartelas
   useEffect(() => {
     async function fetchCartelas() {
       try {
@@ -168,6 +167,7 @@ export default function SelectCards() {
     return numbers.includes(target);
   };
 
+  // ✅ Handle Play Click with Jackpot Calculation
   const handlePlayClick = async () => {
     if (!selectedCartelaNumbers.length) {
       alert(
@@ -214,6 +214,11 @@ export default function SelectCards() {
         JSON.stringify(selectedCartelasData)
       );
 
+      // ✅ Calculate Jackpot
+      const jackpotAmount =
+        (betAmount * selectedCartelaNumbers.length * (100 - selectedPercent)) /
+        100;
+
       await addDoc(collection(db, "gameSessions"), {
         userEmail: user.email,
         selectedCartelas: selectedCartelaNumbers,
@@ -222,8 +227,8 @@ export default function SelectCards() {
         gameType,
         speed,
         createdAt: new Date(),
-
         percentage: selectedPercent,
+        jackpotAmount, // ✅ Store in Firestore
       });
 
       router.push(`/web/play-bingo`);
@@ -233,7 +238,6 @@ export default function SelectCards() {
     }
   };
 
-  // Persist percentage choice
   useEffect(() => {
     localStorage.setItem("selectedPercent", String(selectedPercent));
   }, [selectedPercent]);
@@ -256,6 +260,7 @@ export default function SelectCards() {
     );
   }
 
+  // ✅ The rest of your JSX layout remains unchanged
   return (
     <>
       <div className="flex justify-between items-center gap-3">
